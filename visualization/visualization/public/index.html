@@ -13,7 +13,7 @@
 }
 
 </style>
-<svg width="960" height="600"></svg>
+<svg width="1920" height="1200"></svg>
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script>
 var svg = d3.select("svg"),
@@ -23,8 +23,8 @@ var svg = d3.select("svg"),
 var color = d3.scaleOrdinal(d3.schemeCategory20);
 
 var simulation = d3.forceSimulation()
-    .force("link", d3.forceLink().id(function(d) { return d.id; }).distance(function(d) {return d.value;}))
-    .force("charge", d3.forceManyBody())
+    .force("link", d3.forceLink().id(function(d) { return d.id; }).distance(function(d) { return d.value * 10;}))
+    .force("charge", d3.forceManyBody().distanceMax(300))
     .force("center", d3.forceCenter(width / 2, height / 2));
 
 d3.json("miserables.json", function(error, graph) {
