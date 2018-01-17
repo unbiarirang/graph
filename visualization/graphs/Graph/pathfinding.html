@@ -1,0 +1,171 @@
+function pathfinding(sourceID, targetID, directedSearch, searchType) {
+      var graphStats = {};
+      
+        if (searchType == "aggregate") {
+          var aggregatedCosts = {};
+          for (xx in nodes) {
+            graphStats[nodes[xx].id] = {};
+            graphStats[nodes[xx].id]["Betweenness"] = 0;
+            aggregatedCosts[nodes[xx].id] = {};
+            for (yy in nodes) {
+              aggregatedCosts[nodes[xx].id][nodes[yy].id] = +Infinity;
+            }
+          }
+        }
+        else {
+          for (xx in nodes) {
+            graphStats[nodes[xx].id] = {};
+            graphStats[nodes[xx].id]["Betweenness"] = 0;
+          }
+        }
+// Two possibilities, either we're running an individual search, in which case we stop when we find the path, or we're aggregating values for the entire graph, in which case we run the paths from every node to every node
+      var aggregatedSourceID = 0;
+      while ((searchType == "individual" && pathFound != true) || (searchType != "individual" && aggregatedSourceID < nodes.length)) {
+// Set a fresh TargetID in this loop;
+      var aggregatedTargetID = 0;
+      
+      //For aggregated statistics, we start at node 0 and calculate for all nodes
+        if (searchType == "aggregate") {sourceID = nodes[aggregatedSourceID].id;}
+        // we need to know for each source the vertices that have been calculated
+      var visitedVertices = [];
+      //but we store those vertices in an object array, this allows us to indexOf the previous array and jump to the specific cost for the calculated vertex(node)
+      vertexCost = {};
+      
+      // set the cost to infinity so that we know what we've calculated and what we haven't
+      for (n in nodes) {
+        vertexCost[nodes[n].id] = +Infinity;
+      }
+  // the source node is 0
+      vertexCost[sourceID] = 0;
+// and thus is calculated
+      calculatedVertices = [sourceID];
+// parentVertex is used to walk back through the network once we've calculated the shortest path because the aggregate of shortest paths is the shortest path in a network
+      parentVertex = {};
+// we need a signal to point out that we've found a path for the individual check
+      var pathFound = false;
+//we set a high minimum value because we need to cycle through the links to pick the lowest cost link to calculate first
+      var minimumValue = 9999;
+//these are variables for holding possible source/target pairs
+      var sourceValue = "";
+      var targetValue = "";
+      
+//we store the links in a separate object so that we can reference them with source/target pairs to highlight them later
+      var linkID = 0;
+      linkList = {};
+//there are two possibilities: we're looking for one route, in which case we want to stop when we find the path, or we're looking for all routes, in which case we want to stop when we reach the end of the list of nodes      
+      while ((searchType == "individual" && pathFound != true) || (searchType != "individual" && aggregatedTargetID < nodes.length)) {
+//set the targetID to the current aggregate target node in the loop, if running the aggregate search
+        if (searchType == "aggregate") {targetID = nodes[aggregatedTargetID].id;}
+      while (pathFound == false ) {
+      minimumValue = 9999;
+      sourceValue = "";
+      targetValue = "";
+      linkID = 0;
+        for (z in links) {
+          var otherVertex = "none";
+          var startVertex = "none";
+          //find the next edge to check and make sure it's the lowest value
+          if (calculatedVertices.indexOf(links[z].source.id) > -1 && calculatedVertices.indexOf(links[z].target.id) == -1) {
+            startVertex = links[z].source.id;
+            otherVertex = links[z].target.id;
+          }
+          //undirected search looks at target->source as well
+          else if (directedSearch == false && calculatedVertices.indexOf(links[z].target.id) > -1 && calculatedVertices.indexOf(links[z].source.id) == -1) {
+            startVertex = links[z].target.id;
+            otherVertex = links[z].source.id;
+          }
+          if (otherVertex != "none") {
+            if ((parseFloat(links[z].cost) + vertexCost[startVertex]) < minimumValue) {
+              minimumValue = (parseFloat(links[z].cost) + vertexCost[startVertex]);
+              sourceValue = startVertex;
+              targetValue = otherVertex;
+              linkID = z;
+            }
+          }
+        }
+              // if the minimum value is still 9999, then that means no paths were discovered, and there is no path
+              if (minimumValue == 9999) {
+//                vertexCost[targetID] = +Infinity;
+                calculatedVertices.push(targetID);
+                pathFound = true;
+              }
+              else {
+                vertexCost[targetValue] = minimumValue;
+                parentVertex[targetValue] = sourceValue;
+                calculatedVertices.push(targetValue);
+              //For a multidimensional object, you have to check and add new objects on-the-fly  
+                if (!linkList[sourceValue]) {
+                  linkList[sourceValue] = {};        
+                }
+                linkList[sourceValue][targetValue] = linkID;
+                if (targetValue == targetID) {
+                  pathFound = true;
+                }
+              }
+ }
+ var computedPathArray = [];
+ computedEdgeArray = [];
+ // this is causing a strange error, so if the type is aggregate, just skip it
+ if (minimumValue != 9999 && parentVertex[targetID]) {
+               var reversePath = targetID;
+               computedPathArray = [];
+              while (reversePath != sourceID) {
+                computedPathArray.push(reversePath);
+                computedEdgeArray.push(linkList[parentVertex[reversePath]][reversePath]);
+                reversePath = parentVertex[reversePath];
+                graphStats[reversePath]["Betweenness"] += 1;
+              }
+              //we shouldn't increase the source or target value for any paths, so decrement the sourceID betweenness
+                graphStats[sourceID]["Betweenness"] -= 1;
+              computedPathArray.push(sourceID);
+              computedEdgeArray.push(linkList[sourceID][parentVertex[reversePath]]);
+ }
+ else if (searchType == "individual") {
+  computedPathArray = ["Path not found"];
+  computedEdgeArray = ["Path not found"];
+ }
+  aggregatedTargetID++;
+  var alreadyComputed = true;
+  if (aggregatedTargetID < nodes.length) {
+    
+  while (alreadyComputed == true && (nodes[aggregatedTargetID]) ) {
+    
+    //find out if we've already computed the new target as part of an earlier path
+    if (calculatedVertices.indexOf(nodes[aggregatedTargetID].id) > -1) {
+      aggregatedTargetID++;
+    }
+    else {
+      alreadyComputed = false;
+    }
+  }
+  
+  }
+  
+}
+  var sumOfConnectedNodes = 0;
+  var totalOfConnectedDistance = 0;
+  for (x in vertexCost) {
+    if (vertexCost[x]) {
+      if (vertexCost[x] != +Infinity) {
+        sumOfConnectedNodes++;
+        totalOfConnectedDistance += vertexCost[x];
+      }
+    }
+  }
+  
+  graphStats[sourceID]["Total Connectivity"] = sumOfConnectedNodes;
+  if(sumOfConnectedNodes == 0) {
+    graphStats[sourceID]["Average Path Length"] = 0;        
+  }
+  else {
+    graphStats[sourceID]["Average Path Length"] = totalOfConnectedDistance / sumOfConnectedNodes;    
+  }
+ aggregatedSourceID++;
+}
+if (searchType == "individual") {
+ return {nodes: computedPathArray, paths: computedEdgeArray};
+}
+else {
+ return graphStats;  
+}
+}
