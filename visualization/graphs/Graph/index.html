@@ -728,6 +728,7 @@ function pathfinding(sourceID, targetID, directedSearch, searchType) {
  aggregatedSourceID++;
 }
 if (searchType == "individual") {
+  console.log(computedPathArray, '\n', computedEdgeArray);
  return {nodes: computedPathArray, paths: computedEdgeArray};
 }
 else {
