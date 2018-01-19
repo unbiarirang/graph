@@ -38,7 +38,7 @@
 <script>
 var currentSizing = "nothing";
 var currentEdge = "fixed";
-var source_node = "";
+var sourceNode = "";
 var width = 500,
     height = 600;
 var fill = d3.scale.category20();
@@ -377,7 +377,7 @@ function dijkstra(point, road_to, link_list, total_node_num) {
 }
 
 // find the shortest path or centrality
-function find_path(sourceID, targetID, centrality_flag) {
+function findPath(sourceID, targetID, centrality_flag) {
 	var total_node_num = nodes.length;
 
     // init road_to and edge_list
@@ -464,30 +464,28 @@ function selectPath() {
 	d3.select("#definitionbox").html("Select a node to compute a path from");
 }
 function setSource(d) {
-	source_node = d.id;
+	sourceNode = d.id;
 	d3.selectAll("g.node").on("click",setTarget);
 	d3.select("#definitionbox").html(d.id + "selected - select a node to compute the path to");
 }
 function setTarget(d) {
-	var computedPathArray = find_path(source_node, d.id);
+	var computedPathArray = findPath(sourceNode, d.id);
 
 	if (computedPathArray.nodes[0] == "Path not found") {
 		d3.select("#definitionbox").html("No path");
-		d3.selectAll("circle.node").transition().duration(300).style("fill", function(p) {return [d.id,source_node].indexOf(p.id) > -1 ? "blue" : "black"});
+		d3.selectAll("circle.node").transition().duration(300).style("fill", function(p) {return [d.id,sourceNode].indexOf(p.id) > -1 ? "brown" : "black"});
 		d3.selectAll("line.link").transition().duration(300).style("stroke","black");
 	}
 	else {
 		computedPathArray.paths.reverse();
 		computedPathArray.nodes.reverse();
-		d3.select("#definitionbox").html("<span style='color:blue;'>Path from " + source_node + " to " + d.id + ". Total cost is " + computedPathArray.total_cost + "</span>");
-		d3.selectAll("circle.node").transition().delay(function(d) {return computedPathArray.nodes.indexOf("" + d.id) > -1 ? (computedPathArray.nodes.indexOf("" + d.id) * 500) + 500 : 0}).duration(300).style("fill", function(d) {return computedPathArray.nodes.indexOf(d.id) > -1 ? "blue" : "pink"});
-		d3.selectAll("line.link").transition().delay(function(d) {return computedPathArray.paths.indexOf(d.id) > -1 ? (computedPathArray.paths.indexOf(d.id) * 500) + 500 : 0}).duration(300).style("stroke", function(d) {return computedPathArray.paths.indexOf(d.id) > -1 ? "blue" : "pink"});
+		d3.select("#definitionbox").html("<span style='color:brown;'>Path from " + sourceNode + " to " + d.id + ". Total cost is " + computedPathArray.total_cost + "</span>");
+		d3.selectAll("circle.node").transition().delay(function(d) {return computedPathArray.nodes.indexOf("" + d.id) > -1 ? (computedPathArray.nodes.indexOf("" + d.id) * 500) + 500 : 0}).duration(300).style("fill", function(d) {return computedPathArray.nodes.indexOf(d.id) > -1 ? "brown" : "#FA8806"});
+		d3.selectAll("line.link").transition().delay(function(d) {return computedPathArray.paths.indexOf(d.id) > -1 ? (computedPathArray.paths.indexOf(d.id) * 500) + 500 : 0}).duration(300).style("stroke", function(d) {return computedPathArray.paths.indexOf(d.id) > -1 ? "brown" : "#999"});
 	}
 	d3.selectAll("g.node").on("click", null).style("cursor","auto");
-	source_node = "";
+	sourceNode = "";
 }
-
-
 
 function sizeByStats(statname) {
 	var minStat = 9999;
@@ -511,8 +509,7 @@ function sizeByStats(statname) {
 
 function calculateCentrality() {
 	d3.select("#definitionbox").html("Calculating paths...");
-	//graphStats = pathfinding(0,0,directedValue,"aggregate");
-	graphStats = find_path(0, 0, true);
+	graphStats = findPath(0, 0, true);
 	sizeByStats("Closeness");   
 }
 
