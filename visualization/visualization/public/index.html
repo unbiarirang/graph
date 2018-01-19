@@ -114,7 +114,7 @@ rect {
     <ol>
       <li><input type="button" value="Introduction" onclick='updateText("introduction")'></li>
       <li>Models</li>
-    <li><input type="button" value="Random" onclick='randomGraph(50,.025); updateText("randomgraph")'><input type="button" value="Dramatic" onclick='loadGraph("hamlet_nodes.csv","hamlet_edges.csv","person"); updateText("drama")'><input type="button" value="Transportation" onclick='loadGraph("rome_nodes.csv","rome_edges.csv","city"); updateText("transport")'></li>
+    <li><input type="button" value="Random" onclick='randomGraph(10,0.05); updateText("randomgraph")'><input type="button" value="Dramatic" onclick='loadGraph("hamlet_nodes.csv","hamlet_edges.csv","person"); updateText("drama")'><input type="button" value="Transportation" onclick='loadGraph("rome_nodes.csv","rome_edges.csv","city"); updateText("transport")'></li>
     <li><input type="button" value="Correspondence" disabled=true><input type="button" value="Genealogy" onclick='loadGraph("darwin_nodes.csv","darwin_edges.csv","person"); updateText("darwin")'><input type="button" value="Administration" onclick='loadGraph("dgsd_nodes.csv","dgsd_edges.csv","city"); updateText("dgsd")'></li>
       <li>Layouts</li>
     <li><input type="button" value="Force-Directed" onclick='updateForce(); updateText("forcealgo")'><input type="button" value="Plot" onclick='plotLayout(); updateText("plotlayout")'><input type="button" value="Hierarchical" disabled=true></li>
@@ -585,7 +585,9 @@ const INF = 2100000000;
 function dijkstra(point, road_to, link_list, total_node_num) {
     // initialization
     var start_vertex = point.start;
-    var end_vertex = point.end;
+	var end_vertex = point.end;
+	if (start_vertex == end_vertex) return { nodes: {}, paths: {}, total_cost: 0 };
+
     var d = [];             // the shortest distance to every node
     var previous = [];
 
@@ -642,10 +644,9 @@ function dijkstra(point, road_to, link_list, total_node_num) {
 		edge_result[0] = [];
         node_result[0].push("Path not found");
         edge_result[0].push("Path not found");
-        return { nodes: node_result, paths: edge_result};
+        return { nodes: node_result, paths: edge_result, total_cost: INF};
     }
 
-	console.log("links: ", links);
 	node_result.push(cur_vertex);
     while (true) {
         if (previous[cur_vertex] == "UNDEFINED") break;
@@ -661,9 +662,9 @@ function dijkstra(point, road_to, link_list, total_node_num) {
     return { nodes: node_result, paths: edge_result, total_cost: total_cost };
 }
 
-function pathfinding2(sourceID, targetID, directedSearch, searchType) {
+// find the shortest path or centrality
+function find_path(sourceID, targetID, centrality_flag) {
 	var total_node_num = nodes.length;
-	console.log(nodes);
 
     // init road_to and edge_list
     var road_to = new Array(nodes.length);        // distance between two nodes
@@ -690,12 +691,81 @@ function pathfinding2(sourceID, targetID, directedSearch, searchType) {
         edge_list[target_id][source_id] = link.id;
     }
 
-    return dijkstra({start: sourceID, end: targetID}, road_to, edge_list, total_node_num);
+	// get the shortest path between two nodes
+	if (!centrality_flag)
+		return dijkstra({start: sourceID, end: targetID}, road_to, edge_list, total_node_num);
+	
+
+	// get centrality (closeness and betweenness)
+	var graphStats = {};
+	for (var i in nodes) {
+		graphStats[nodes[i].id] = {};
+		graphStats[nodes[i].id]["Average Path Length"] = 0;
+		graphStats[nodes[i].id]["Betweenness"] = 0;
+		graphStats[nodes[i].id]["Total Connectivity"] = 0;
+	}
+
+	for (var i in nodes) {
+		var sourceID = nodes[i].id;
+		var connected_node_num = 0;
+		var total_connected_distance = 0;
+
+		// get all shortest path cost from source node
+		for (var j in nodes) {
+			var targetID = nodes[j].id;
+			var result_obj = dijkstra({start: sourceID, end: targetID}, road_to, edge_list, total_node_num);
+
+			// for closeness
+			var cost = result_obj.total_cost;
+			if (cost != INF) {
+				connected_node_num++;
+				total_connected_distance += cost;
+			}
+
+			// for betweenness
+			var node_ids = result_obj.nodes;
+			if (node_ids[0] != "Path not found") {
+				for (var index in node_ids) {
+					var node_id = node_ids[index]
+					if (node_id == sourceID || node_id == targetID) continue;
+
+					graphStats[node_id]["Betweenness"] += 1;
+				}
+			}
+		}
+
+		// calculate closeness
+		graphStats[sourceID]["Total Connectivity"] = connected_node_num;
+		if(connected_node_num == 0)
+			graphStats[sourceID]["Average Path Length"] = 0;        
+		else
+			graphStats[sourceID]["Average Path Length"] = total_connected_distance / connected_node_num;
+	}
+
+	return graphStats;
 }
 
+function get_closeness() {
+	var connected_node_num = 0;
+	var total_connected_distance = 0;
+	for (index in nodes) {
+		var cost = find_path(sourceID, index).total_cost;
+		if (cost != INF) {
+			connected_node_num++;
+			total_connected_distance += cost;
+		}
+	}
 
+	graphStats[sourceID]["Total Connectivity"] = connected_node_num;
+	if(connected_node_num == 0)
+		graphStats[sourceID]["Average Path Length"] = 0;        
+	else
+		graphStats[sourceID]["Average Path Length"] = total_connected_distance / connected_node_num;
+}
 
+function get_betweenness() {
 
+}
 
 
 
@@ -714,116 +784,116 @@ function pathfinding2(sourceID, targetID, directedSearch, searchType) {
 
 
 function pathfinding(sourceID, targetID, directedSearch, searchType) {
-      var graphStats = {};
-      
-        if (searchType == "aggregate") {
-          var aggregatedCosts = {};
-          for (xx in nodes) {
-            graphStats[nodes[xx].id] = {};
-            graphStats[nodes[xx].id]["Betweenness"] = 0;
-            aggregatedCosts[nodes[xx].id] = {};
-            for (yy in nodes) {
-              aggregatedCosts[nodes[xx].id][nodes[yy].id] = +Infinity;
-            }
-          }
-        }
-        else {
-          for (xx in nodes) {
-            graphStats[nodes[xx].id] = {};
-            graphStats[nodes[xx].id]["Betweenness"] = 0;
-          }
-        }
+	var graphStats = {};
+	
+	if (searchType == "aggregate") {
+		var aggregatedCosts = {};
+		for (xx in nodes) {
+			graphStats[nodes[xx].id] = {};
+			graphStats[nodes[xx].id]["Betweenness"] = 0;
+			aggregatedCosts[nodes[xx].id] = {};
+			for (yy in nodes) {
+				aggregatedCosts[nodes[xx].id][nodes[yy].id] = +Infinity;
+			}
+		}
+	}
+	// else {
+	//   for (xx in nodes) {
+	//     graphStats[nodes[xx].id] = {};
+	//     graphStats[nodes[xx].id]["Betweenness"] = 0;
+	//   }
+	// }
 // Two possibilities, either we're running an individual search, in which case we stop when we find the path, or we're aggregating values for the entire graph, in which case we run the paths from every node to every node
-      var aggregatedSourceID = 0;
-      while ((searchType == "individual" && pathFound != true) || (searchType != "individual" && aggregatedSourceID < nodes.length)) {
+    var aggregatedSourceID = 0;
+    while (searchType != "individual" && aggregatedSourceID < nodes.length) {
 // Set a fresh TargetID in this loop;
-      var aggregatedTargetID = 0;
+		var aggregatedTargetID = 0;
+		
+		//For aggregated statistics, we start at node 0 and calculate for all nodes
+		if (searchType == "aggregate") {sourceID = nodes[aggregatedSourceID].id;}
+		// we need to know for each source the vertices that have been calculated
+		var visitedVertices = [];
+		//but we store those vertices in an object array, this allows us to indexOf the previous array and jump to the specific cost for the calculated vertex(node)
+		vertexCost = {};
+		
+		// set the cost to infinity so that we know what we've calculated and what we haven't
+		for (n in nodes) {
+			vertexCost[nodes[n].id] = +Infinity;
+		}
+	// the source node is 0
+		vertexCost[sourceID] = 0;
+	// and thus is calculated
+		calculatedVertices = [sourceID];
+	// parentVertex is used to walk back through the network once we've calculated the shortest path because the aggregate of shortest paths is the shortest path in a network
+		parentVertex = {};
+	// we need a signal to point out that we've found a path for the individual check
+		var pathFound = false;
+	//we set a high minimum value because we need to cycle through the links to pick the lowest cost link to calculate first
+		var minimumValue = 9999;
+	//these are variables for holding possible source/target pairs
+		var sourceValue = "";
+		var targetValue = "";
       
-      //For aggregated statistics, we start at node 0 and calculate for all nodes
-        if (searchType == "aggregate") {sourceID = nodes[aggregatedSourceID].id;}
-        // we need to know for each source the vertices that have been calculated
-      var visitedVertices = [];
-      //but we store those vertices in an object array, this allows us to indexOf the previous array and jump to the specific cost for the calculated vertex(node)
-      vertexCost = {};
-      
-      // set the cost to infinity so that we know what we've calculated and what we haven't
-      for (n in nodes) {
-        vertexCost[nodes[n].id] = +Infinity;
-      }
-  // the source node is 0
-      vertexCost[sourceID] = 0;
-// and thus is calculated
-      calculatedVertices = [sourceID];
-// parentVertex is used to walk back through the network once we've calculated the shortest path because the aggregate of shortest paths is the shortest path in a network
-      parentVertex = {};
-// we need a signal to point out that we've found a path for the individual check
-      var pathFound = false;
-//we set a high minimum value because we need to cycle through the links to pick the lowest cost link to calculate first
-      var minimumValue = 9999;
-//these are variables for holding possible source/target pairs
-      var sourceValue = "";
-      var targetValue = "";
-      
-//we store the links in a separate object so that we can reference them with source/target pairs to highlight them later
-    var linkID = 0;
-    linkList = {};
-//there are two possibilities: we're looking for one route, in which case we want to stop when we find the path, or we're looking for all routes, in which case we want to stop when we reach the end of the list of nodes      
-    while ((searchType == "individual" && pathFound != true) || (searchType != "individual" && aggregatedTargetID < nodes.length)) {
-//set the targetID to the current aggregate target node in the loop, if running the aggregate search
-    if (searchType == "aggregate") {targetID = nodes[aggregatedTargetID].id;}
-	while (pathFound == false ) {
-		minimumValue = 9999;
-		sourceValue = "";
-		targetValue = "";
-		linkID = 0;
-		for (z in links) {
-			var otherVertex = "none";
-			var startVertex = "none";
-			//find the next edge to check and make sure it's the lowest value
-			if (calculatedVertices.indexOf(links[z].source.id) > -1 && calculatedVertices.indexOf(links[z].target.id) == -1) {
-			startVertex = links[z].source.id;
-			otherVertex = links[z].target.id;
-			}
-			//undirected search looks at target->source as well
-			else if (directedSearch == false && calculatedVertices.indexOf(links[z].target.id) > -1 && calculatedVertices.indexOf(links[z].source.id) == -1) {
-			startVertex = links[z].target.id;
-			otherVertex = links[z].source.id;
-			}
-			if (otherVertex != "none") {
-				if ((parseFloat(links[z].cost) + vertexCost[startVertex]) < minimumValue) {
-					minimumValue = (parseFloat(links[z].cost) + vertexCost[startVertex]);
-					sourceValue = startVertex;
-					targetValue = otherVertex;
-					linkID = z;
+	//we store the links in a separate object so that we can reference them with source/target pairs to highlight them later
+		var linkID = 0;
+		linkList = {};
+
+	//there are two possibilities: we're looking for one route, in which case we want to stop when we find the path, or we're looking for all routes, in which case we want to stop when we reach the end of the list of nodes      
+		while (searchType != "individual" && aggregatedTargetID < nodes.length) {
+		//set the targetID to the current aggregate target node in the loop, if running the aggregate search
+			if (searchType == "aggregate") {targetID = nodes[aggregatedTargetID].id;}
+			while (pathFound == false ) {
+				minimumValue = 9999;
+				sourceValue = "";
+				targetValue = "";
+				linkID = 0;
+				for (z in links) {
+					var otherVertex = "none";
+					var startVertex = "none";
+					//find the next edge to check and make sure it's the lowest value
+					if (calculatedVertices.indexOf(links[z].source.id) > -1 && calculatedVertices.indexOf(links[z].target.id) == -1) {
+					startVertex = links[z].source.id;
+					otherVertex = links[z].target.id;
+					}
+					//undirected search looks at target->source as well
+					else if (directedSearch == false && calculatedVertices.indexOf(links[z].target.id) > -1 && calculatedVertices.indexOf(links[z].source.id) == -1) {
+					startVertex = links[z].target.id;
+					otherVertex = links[z].source.id;
+					}
+					if (otherVertex != "none") {
+						if ((parseFloat(links[z].cost) + vertexCost[startVertex]) < minimumValue) {
+							minimumValue = (parseFloat(links[z].cost) + vertexCost[startVertex]);
+							sourceValue = startVertex;
+							targetValue = otherVertex;
+							linkID = z;
+						}
+					}
+				}
+				// if the minimum value is still 9999, then that means no paths were discovered, and there is no path
+				if (minimumValue == 9999) {
+					calculatedVertices.push(targetID);
+					pathFound = true;
+				}
+				else {
+					vertexCost[targetValue] = minimumValue;
+					parentVertex[targetValue] = sourceValue;
+					calculatedVertices.push(targetValue);
+					//For a multidimensional object, you have to check and add new objects on-the-fly  
+					if (!linkList[sourceValue]) {
+						linkList[sourceValue] = {};        
+					}
+					linkList[sourceValue][targetValue] = linkID;
+					if (targetValue == targetID) {
+						pathFound = true;
+					}
 				}
 			}
-		}
-		// if the minimum value is still 9999, then that means no paths were discovered, and there is no path
-		if (minimumValue == 9999) {
-	//                vertexCost[targetID] = +Infinity;
-		calculatedVertices.push(targetID);
-		pathFound = true;
-		}
-		else {
-			vertexCost[targetValue] = minimumValue;
-			parentVertex[targetValue] = sourceValue;
-			calculatedVertices.push(targetValue);
-			//For a multidimensional object, you have to check and add new objects on-the-fly  
-			if (!linkList[sourceValue]) {
-				linkList[sourceValue] = {};        
-			}
-			linkList[sourceValue][targetValue] = linkID;
-			if (targetValue == targetID) {
-				pathFound = true;
-			}
-		}
-	 }
-	 
+			
 
-	var computedPathArray = [];
-	computedEdgeArray = [];
-	// this is causing a strange error, so if the type is aggregate, just skip it
-	if (minimumValue != 9999 && parentVertex[targetID]) {
+			var computedPathArray = [];
+			computedEdgeArray = [];
+			// this is causing a strange error, so if the type is aggregate, just skip it
+			if (minimumValue != 9999 && parentVertex[targetID]) {
 				var reversePath = targetID;
 				computedPathArray = [];
 				while (reversePath != sourceID) {
@@ -833,209 +903,200 @@ function pathfinding(sourceID, targetID, directedSearch, searchType) {
 					graphStats[reversePath]["Betweenness"] += 1;
 				}
 				//we shouldn't increase the source or target value for any paths, so decrement the sourceID betweenness
-					graphStats[sourceID]["Betweenness"] -= 1;
+				graphStats[sourceID]["Betweenness"] -= 1;
 				computedPathArray.push(sourceID);
 				computedEdgeArray.push(linkList[sourceID][parentVertex[reversePath]]);
-	}
-	else if (searchType == "individual") {
-	computedPathArray = ["Path not found"];
-	computedEdgeArray = ["Path not found"];
-	}
-	aggregatedTargetID++;
-	var alreadyComputed = true;
-	if (aggregatedTargetID < nodes.length) {
+			}
+
+			aggregatedTargetID++;
+			var alreadyComputed = true;
+			if (aggregatedTargetID < nodes.length) {
+				while (alreadyComputed == true && (nodes[aggregatedTargetID]) ) {
+					//find out if we've already computed the new target as part of an earlier path
+					if (calculatedVertices.indexOf(nodes[aggregatedTargetID].id) > -1)
+						aggregatedTargetID++;
+					else
+						alreadyComputed = false;
+				}
+			}
+		}
+		var sumOfConnectedNodes = 0;
+		var totalOfConnectedDistance = 0;
+		for (x in vertexCost) {
+			if (vertexCost[x]) {
+				if (vertexCost[x] != +Infinity) {
+					sumOfConnectedNodes++;
+					totalOfConnectedDistance += vertexCost[x];
+				}
+			}
+		}
+
+		///////////////////////////////////
+		sumOfConnectedNodes = 0;
+		totalOfConnectedDistance = 0;
+		for (index in nodes) {
+			var cost = find_path(sourceID, index).total_cost;
+			if (cost != INF) {
+				sumOfConnectedNodes++;
+				totalOfConnectedDistance += cost;
+			}
+		}
 		
-	while (alreadyComputed == true && (nodes[aggregatedTargetID]) ) {
-		
-		//find out if we've already computed the new target as part of an earlier path
-		if (calculatedVertices.indexOf(nodes[aggregatedTargetID].id) > -1) {
-		aggregatedTargetID++;
-		}
-		else {
-		alreadyComputed = false;
-		}
+		graphStats[sourceID]["Total Connectivity"] = sumOfConnectedNodes;
+		if(sumOfConnectedNodes == 0)
+			graphStats[sourceID]["Average Path Length"] = 0;        
+		else
+			graphStats[sourceID]["Average Path Length"] = totalOfConnectedDistance / sumOfConnectedNodes;    
+
+		aggregatedSourceID++;
 	}
-	
-	}
-	
-	}
-	var sumOfConnectedNodes = 0;
-	var totalOfConnectedDistance = 0;
-	for (x in vertexCost) {
-		if (vertexCost[x]) {
-		if (vertexCost[x] != +Infinity) {
-			sumOfConnectedNodes++;
-			totalOfConnectedDistance += vertexCost[x];
-		}
-		}
-	}
-	
-	graphStats[sourceID]["Total Connectivity"] = sumOfConnectedNodes;
-	if(sumOfConnectedNodes == 0) {
-		graphStats[sourceID]["Average Path Length"] = 0;        
-	}
-	else {
-		graphStats[sourceID]["Average Path Length"] = totalOfConnectedDistance / sumOfConnectedNodes;    
-	}
-	aggregatedSourceID++;
-	}
-	if (searchType == "individual") {
-	console.log(computedPathArray, '\n', computedEdgeArray);
-	return {nodes: computedPathArray, paths: computedEdgeArray};
-	}
-	else {
-		return graphStats;  
-	}
+
+	return graphStats;  
 }
 
 
 function selectPath() {
-  d3.selectAll("g.node").on("click",setSource).style("cursor", "pointer")
-  d3.select("#definitionbox").html("Select a node to compute a path from");
+	d3.selectAll("g.node").on("click",setSource).style("cursor", "pointer")
+	d3.select("#definitionbox").html("Select a node to compute a path from");
 }
 function setSource(d) {
-  pathSource = d.id;
-  d3.selectAll("g.node").on("click",setTarget);
-  d3.select("#definitionbox").html(d.id + "selected - select a node to compute the path to");
+	pathSource = d.id;
+	d3.selectAll("g.node").on("click",setTarget);
+	d3.select("#definitionbox").html(d.id + "selected - select a node to compute the path to");
 }
 function setTarget(d) {
-  
-  var directedValue = document.getElementById('directedCheck').checked;
-  
-  var computedPathArray = pathfinding2(pathSource,d.id,directedValue,"individual");
+	var directedValue = document.getElementById('directedCheck').checked;
+	var computedPathArray = find_path(pathSource, d.id);
 
-  console.log(computedPathArray);
-  if (computedPathArray.nodes[0] == "Path not found") {
-    d3.select("#definitionbox").html("No path");
-    d3.selectAll("circle.node").transition().duration(300).style("fill", function(p) {return [d.id,pathSource].indexOf(p.id) > -1 ? "blue" : "black"});
-    d3.selectAll("line.link").transition().duration(300).style("stroke","black");
-  }
-  else {
-    computedPathArray.paths.reverse();
-	computedPathArray.nodes.reverse();
-    d3.select("#definitionbox").html("<span style='color:blue;'>Path from " + pathSource + " to " + d.id + ". Total cost is " + computedPathArray.total_cost + "</span>");
-    d3.selectAll("circle.node").transition().delay(function(d) {return computedPathArray.nodes.indexOf("" + d.id) > -1 ? (computedPathArray.nodes.indexOf("" + d.id) * 500) + 500 : 0}).duration(300).style("fill", function(d) {return computedPathArray.nodes.indexOf(d.id) > -1 ? "blue" : "pink"});
-    d3.selectAll("line.link").transition().delay(function(d) {return computedPathArray.paths.indexOf(d.id) > -1 ? (computedPathArray.paths.indexOf(d.id) * 500) + 500 : 0}).duration(300).style("stroke", function(d) {return computedPathArray.paths.indexOf(d.id) > -1 ? "blue" : "pink"});
-  }
-      d3.selectAll("g.node").on("click", null).style("cursor","auto");
-  pathSource = "";
-  
+	if (computedPathArray.nodes[0] == "Path not found") {
+		d3.select("#definitionbox").html("No path");
+		d3.selectAll("circle.node").transition().duration(300).style("fill", function(p) {return [d.id,pathSource].indexOf(p.id) > -1 ? "blue" : "black"});
+		d3.selectAll("line.link").transition().duration(300).style("stroke","black");
+	}
+	else {
+		computedPathArray.paths.reverse();
+		computedPathArray.nodes.reverse();
+		d3.select("#definitionbox").html("<span style='color:blue;'>Path from " + pathSource + " to " + d.id + ". Total cost is " + computedPathArray.total_cost + "</span>");
+		d3.selectAll("circle.node").transition().delay(function(d) {return computedPathArray.nodes.indexOf("" + d.id) > -1 ? (computedPathArray.nodes.indexOf("" + d.id) * 500) + 500 : 0}).duration(300).style("fill", function(d) {return computedPathArray.nodes.indexOf(d.id) > -1 ? "blue" : "pink"});
+		d3.selectAll("line.link").transition().delay(function(d) {return computedPathArray.paths.indexOf(d.id) > -1 ? (computedPathArray.paths.indexOf(d.id) * 500) + 500 : 0}).duration(300).style("stroke", function(d) {return computedPathArray.paths.indexOf(d.id) > -1 ? "blue" : "pink"});
+	}
+	d3.selectAll("g.node").on("click", null).style("cursor","auto");
+	pathSource = "";
 }
+
+
+
 function sizeByStats(statname) {
-    var minStat = 9999;
-  var maxStat = 0;
+	var minStat = 9999;
+	var maxStat = 0;
     for (x in nodes) {
-            if (graphStats[nodes[x].id]["Total Connectivity"] != 0) {
-              minStat = Math.min(minStat, graphStats[nodes[x].id][statname]);
-              maxStat = Math.max(maxStat, graphStats[nodes[x].id][statname]);
-            }
+		if (graphStats[nodes[x].id]["Total Connectivity"] != 0) {
+			minStat = Math.min(minStat, graphStats[nodes[x].id][statname]);
+			maxStat = Math.max(maxStat, graphStats[nodes[x].id][statname]);
+		}
     }
     
-        d3.select("#definitionbox").html("Nodes are now sized by " + statname);
-  var sizeRamp = d3.scale.linear().domain([minStat,maxStat]).range([2,10]).clamp(true);
-  d3.selectAll("circle.node").transition().duration(300).attr("r", function(d,i) {return graphStats[nodes[i].id][statname] > 0 ? sizeRamp(graphStats[nodes[i].id][statname]) : 1});
-  d3.selectAll("image.node").transition().duration(300)
-  .attr("height", function(d,i) {return graphStats[nodes[i].id]["Total Connectivity"] > 0 ? sizeRamp(graphStats[nodes[i].id][statname]) : 1})
-  .attr("width", function(d,i) {return graphStats[nodes[i].id]["Total Connectivity"] > 0 ? sizeRamp(graphStats[nodes[i].id][statname]) : 1})
-  .attr("x", function(d,i) {return graphStats[nodes[i].id]["Total Connectivity"] > 0 ? -(sizeRamp(graphStats[nodes[i].id][statname]) / 2) : -.5})
-  .attr("y", function(d,i) {return graphStats[nodes[i].id]["Total Connectivity"] > 0 ? -(sizeRamp(graphStats[nodes[i].id][statname]) / 2) : -.5});
+    d3.select("#definitionbox").html("Nodes are now sized by " + statname);
+	var sizeRamp = d3.scale.linear().domain([minStat,maxStat]).range([2,10]).clamp(true);
+	d3.selectAll("circle.node").transition().duration(300).attr("r", function(d,i) {return graphStats[nodes[i].id][statname] > 0 ? sizeRamp(graphStats[nodes[i].id][statname]) : 1});
+	d3.selectAll("image.node").transition().duration(300)
+	.attr("height", function(d,i) {return graphStats[nodes[i].id]["Total Connectivity"] > 0 ? sizeRamp(graphStats[nodes[i].id][statname]) : 1})
+	.attr("width", function(d,i) {return graphStats[nodes[i].id]["Total Connectivity"] > 0 ? sizeRamp(graphStats[nodes[i].id][statname]) : 1})
+	.attr("x", function(d,i) {return graphStats[nodes[i].id]["Total Connectivity"] > 0 ? -(sizeRamp(graphStats[nodes[i].id][statname]) / 2) : -.5})
+	.attr("y", function(d,i) {return graphStats[nodes[i].id]["Total Connectivity"] > 0 ? -(sizeRamp(graphStats[nodes[i].id][statname]) / 2) : -.5});
 }
+
 function calculateCentrality() {
-  var directedValue = document.getElementById('directedCheck').checked;
-    d3.select("#definitionbox").html("Calculating paths...");
-  //Here's closeness, at least
-  graphStats = pathfinding(0,0,directedValue,"aggregate");
+	var directedValue = document.getElementById('directedCheck').checked;
+	d3.select("#definitionbox").html("Calculating paths...");
+	//graphStats = pathfinding(0,0,directedValue,"aggregate");
+	graphStats = find_path(0, 0, true);
+	sizeByStats("Average Path Length");   
+}
+// function findEgoNetwork(searchNode, egoNetworkDegree, isDirected, searchType) {
+//   var egoNetwork = {};
+//   for (x in nodes) {
+//     if (nodes[x].id == searchNode || searchType == "aggregate") {
+//     egoNetwork[nodes[x].id] = [nodes[x].id];
+//     var z = 0;
+//     while (z < egoNetworkDegree) {
+//       var thisEgoRing = egoNetwork[nodes[x].id].slice(0);
+//     for (y in links) {
+//         if (thisEgoRing.indexOf(links[y].source.id) > -1 && thisEgoRing.indexOf(links[y].target.id) == -1) {
+//         egoNetwork[nodes[x].id].push(links[y].target.id)
+//         }
+//         else if (isDirected == false && thisEgoRing.indexOf(links[y].source.id) == -1 && thisEgoRing.indexOf(links[y].target.id) > -1) {
+//         egoNetwork[nodes[x].id].push(links[y].source.id)
+//         }
+//     }
+//     z++;
+//     }
+//     }
+//   }
+//   if (searchType == "aggregate") {
+//     //if it's checking the entire network, pass back the entire object of arrays
+//     return egoNetwork;
+//   }
+//   else {
+//     //Otherwise only give back the array that corresponds with the search node
+//     return egoNetwork[searchNode];
+//   }
+// }
+// function showEgoNetwork() {
+//   d3.selectAll("g.node").on("click",findEgo).style("cursor", "pointer");
+//   d3.select("#definitionbox").html("Select a node to see its 2-Degree Ego Network");
+// }
+// function findEgo(d) {  
+//   d3.select("#definitionbox").html("<span style='color:blue;'>All nodes within 2 steps of</span><span style='color:purple;'> " + d.label + "</span>");
+//   d3.selectAll("g.node").on("click",null).style("cursor", "auto");
+//   var directedValue = document.getElementById('directedCheck').checked;
+//   var computedEgoArray = findEgoNetwork(d.id, 2, directedValue,"individual");
+//   d3.selectAll("circle.node").style("fill", function(p) {return p.id == d.id ? "purple" : computedEgoArray.indexOf(p.id) > -1 ? "blue" : "pink"})
+// }
+// function spatialProblem() {
+//   var closeNodes = [];
+// //We can decrement the ego network size
+// var egoNetworkSize = 5;
+// while (closeNodes.length == 0) {
+// egoNetworkSize--;
+// var computedEgoObject = findEgoNetwork(0, egoNetworkSize, false,"aggregate");
+//   var problemDistance = 20;
+// //The while statement means run this until we get to a distance where there are some nodes that violate this principle
+// while (closeNodes.length == 0 && (problemDistance < 60 || egoNetworkSize == 2)) {  
+//   for (x in nodes) {
+//     for (y in nodes) {
+//     if (computedEgoObject[nodes[x].id].indexOf(nodes[y].id) == -1) {
+//       if (Math.sqrt(Math.pow((nodes[x].x - nodes[y].x),2) + Math.pow((nodes[x].y - nodes[y].y),2)) < problemDistance) {
+//         closeNodes.push(nodes[x].id);
+//         closeNodes.push(nodes[y].id);
+//       }
+//     }
+//     }
+//   }
+//   problemDistance += 20;
+// }
+// }
   
-    sizeByStats("Average Path Length");
-    
-//  var sizeRamp = d3.scale.linear().domain([minConnected,maxConnected]).range([1,10]).clamp(true);
-//  d3.selectAll("circle.node").attr("r", function(d,i) {return sizeRamp(graphStats[nodes[i].id]["Total Connectivity"])});
+//     d3.select("#definitionbox").html("<span style='color:blue;'>Nodes separated by more than "+egoNetworkSize+" steps but closer than " + problemDistance + "px</span>");
   
-}
-function findEgoNetwork(searchNode, egoNetworkDegree, isDirected, searchType) {
-  var egoNetwork = {};
-  for (x in nodes) {
-    if (nodes[x].id == searchNode || searchType == "aggregate") {
-    egoNetwork[nodes[x].id] = [nodes[x].id];
-    var z = 0;
-    while (z < egoNetworkDegree) {
-      var thisEgoRing = egoNetwork[nodes[x].id].slice(0);
-    for (y in links) {
-        if (thisEgoRing.indexOf(links[y].source.id) > -1 && thisEgoRing.indexOf(links[y].target.id) == -1) {
-        egoNetwork[nodes[x].id].push(links[y].target.id)
-        }
-        else if (isDirected == false && thisEgoRing.indexOf(links[y].source.id) == -1 && thisEgoRing.indexOf(links[y].target.id) > -1) {
-        egoNetwork[nodes[x].id].push(links[y].source.id)
-        }
-    }
-    z++;
-    }
-    }
-  }
-  if (searchType == "aggregate") {
-    //if it's checking the entire network, pass back the entire object of arrays
-    return egoNetwork;
-  }
-  else {
-    //Otherwise only give back the array that corresponds with the search node
-    return egoNetwork[searchNode];
-  }
-}
-function showEgoNetwork() {
-  d3.selectAll("g.node").on("click",findEgo).style("cursor", "pointer");
-  d3.select("#definitionbox").html("Select a node to see its 2-Degree Ego Network");
-}
-function findEgo(d) {  
-  d3.select("#definitionbox").html("<span style='color:blue;'>All nodes within 2 steps of</span><span style='color:purple;'> " + d.label + "</span>");
-  d3.selectAll("g.node").on("click",null).style("cursor", "auto");
-  var directedValue = document.getElementById('directedCheck').checked;
-  var computedEgoArray = findEgoNetwork(d.id, 2, directedValue,"individual");
-  d3.selectAll("circle.node").style("fill", function(p) {return p.id == d.id ? "purple" : computedEgoArray.indexOf(p.id) > -1 ? "blue" : "pink"})
-}
-function spatialProblem() {
-  var closeNodes = [];
-//We can decrement the ego network size
-var egoNetworkSize = 5;
-while (closeNodes.length == 0) {
-egoNetworkSize--;
-var computedEgoObject = findEgoNetwork(0, egoNetworkSize, false,"aggregate");
-  var problemDistance = 20;
-//The while statement means run this until we get to a distance where there are some nodes that violate this principle
-while (closeNodes.length == 0 && (problemDistance < 60 || egoNetworkSize == 2)) {  
-  for (x in nodes) {
-    for (y in nodes) {
-    if (computedEgoObject[nodes[x].id].indexOf(nodes[y].id) == -1) {
-      if (Math.sqrt(Math.pow((nodes[x].x - nodes[y].x),2) + Math.pow((nodes[x].y - nodes[y].y),2)) < problemDistance) {
-        closeNodes.push(nodes[x].id);
-        closeNodes.push(nodes[y].id);
-      }
-    }
-    }
-  }
-  problemDistance += 20;
-}
-}
+//   d3.selectAll("circle.node").transition().duration(300).style("fill", function(d) {return closeNodes.indexOf(d.id) > -1 ? "blue" : "pink"}).style("stroke-width", function(d) {return closeNodes.indexOf(d.id) > -1 ? 5 : 0});
+//   d3.selectAll("circle.node").transition().delay(300).duration(300).style("stroke-width", 0);  
+// }
+// function labelChange() {
   
-    d3.select("#definitionbox").html("<span style='color:blue;'>Nodes separated by more than "+egoNetworkSize+" steps but closer than " + problemDistance + "px</span>");
+//   //This function now accounts for the size of the circle but bases that size off of the fixed childNode position of the circle in the g element (position [0] in this implementation)
   
-  d3.selectAll("circle.node").transition().duration(300).style("fill", function(d) {return closeNodes.indexOf(d.id) > -1 ? "blue" : "pink"}).style("stroke-width", function(d) {return closeNodes.indexOf(d.id) > -1 ? 5 : 0});
-  d3.selectAll("circle.node").transition().delay(300).duration(300).style("stroke-width", 0);  
-}
-function labelChange() {
-  
-  //This function now accounts for the size of the circle but bases that size off of the fixed childNode position of the circle in the g element (position [0] in this implementation)
-  
-   var newLabelSize = document.getElementById('labelSlider').value / 5;
-   if (newLabelSize > 0) {
-    d3.selectAll("text.node").style("display", "block").style("font-size", function(d) {return parseFloat(newLabelSize) * d3.select(this.parentNode.childNodes[0]).attr("r");});
-   }
-   else {
-    d3.selectAll("text.node").style("display", "none")
-   }
-}
-function changeImage(newImageName) {
-      d3.selectAll("image.node").attr("xlink:href", function(d) { return ("" + newImageName + ".svg")});  
-}
+//    var newLabelSize = document.getElementById('labelSlider').value / 5;
+//    if (newLabelSize > 0) {
+//     d3.selectAll("text.node").style("display", "block").style("font-size", function(d) {return parseFloat(newLabelSize) * d3.select(this.parentNode.childNodes[0]).attr("r");});
+//    }
+//    else {
+//     d3.selectAll("text.node").style("display", "none")
+//    }
+// }
+// function changeImage(newImageName) {
+//       d3.selectAll("image.node").attr("xlink:href", function(d) { return ("" + newImageName + ".svg")});  
+// }
 function clusteringCoefficient() {
   
   //this implementation is currently only undirected
