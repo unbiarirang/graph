@@ -566,6 +566,153 @@ function resize(byValue) {
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const INF = 2100000000;
+function dijkstra(point, road_to, link_list, total_node_num) {
+    // initialization
+    var start_vertex = point.start;
+    var end_vertex = point.end;
+    var d = [];             // the shortest distance to every node
+    var previous = [];
+
+    for (var i = 0; i < total_node_num; i++) {
+        d.push(INF);
+        previous.push("UNDEFINED");
+    }
+
+    var S = [];             // nodes already in shortest path
+    var Q = [];             // nodes not in shortest path
+    S.push(start_vertex);
+    for (var i = 0; i < total_node_num; i++) {
+        if (road_to[start_vertex][i])
+            d[i] = road_to[start_vertex][i];
+        if (i != start_vertex)
+            Q.push(i);
+    }
+    d[start_vertex] = 0;
+
+    // main algorithm
+    var cur_vertex = start_vertex;
+    while (Q.length && cur_vertex != end_vertex) {
+        // find min distance
+        var d_min = INF;
+        for (var i = 0; i < Q.length; i++) {
+            var vertex = Q[i];
+            if (d[vertex] <= d_min) {
+                d_min = d[vertex];
+                cur_vertex = vertex;
+            }
+        }
+
+        // add current node to S, erase current node from Q
+        S.push(cur_vertex);
+        Q.splice(Q.indexOf(cur_vertex), 1);
+
+        // update distance
+        for (var i = 0; i < Q.length; i++) {
+            var vertex = Q[i];
+            if (d[vertex] > d[cur_vertex] + road_to[cur_vertex][vertex]) {
+                d[vertex] = d[cur_vertex] + road_to[cur_vertex][vertex];
+                previous[vertex] = cur_vertex;
+            }
+        }
+    }
+
+    var node_result = [];
+	var edge_result = [];
+	var total_cost = 0;
+
+    // no path
+    if (d[end_vertex] == INF) {
+		node_result[0] = [];
+		edge_result[0] = [];
+        node_result[0].push("Path not found");
+        edge_result[0].push("Path not found");
+        return { nodes: node_result, paths: edge_result};
+    }
+
+	console.log("links: ", links);
+	node_result.push(cur_vertex);
+    while (true) {
+        if (previous[cur_vertex] == "UNDEFINED") break;
+		node_result.push(previous[cur_vertex]);
+		edge_result.push(link_list[cur_vertex][previous[cur_vertex]]);
+		total_cost += links[link_list[cur_vertex][previous[cur_vertex]]].cost;
+        cur_vertex = previous[cur_vertex];
+    }
+    node_result.push(start_vertex);
+	edge_result.push(link_list[start_vertex][cur_vertex]);
+	total_cost += links[link_list[start_vertex][cur_vertex]].cost;
+
+    return { nodes: node_result, paths: edge_result, total_cost: total_cost };
+}
+
+function pathfinding2(sourceID, targetID, directedSearch, searchType) {
+	var total_node_num = nodes.length;
+	console.log(nodes);
+
+    // init road_to and edge_list
+    var road_to = new Array(nodes.length);        // distance between two nodes
+    var edge_list = new Array(links.length);      // edge id between two nodes
+    for (var i = 0; i < total_node_num; i++) {
+        road_to[i] = new Array(total_node_num);
+        edge_list[i] = new Array(links.length);
+
+        for (var j = 0; j < total_node_num; j++)
+            road_to[i][j] = INF;
+        road_to[i][i] = 0;
+    }
+
+    for (var index in links) {
+		var link = links[index];
+        var source_id = link.source.id;
+        var target_id = link.target.id;
+        var cost = link.cost;
+
+        road_to[source_id][target_id] = cost;
+        road_to[target_id][source_id] = cost;
+
+        edge_list[source_id][target_id] = link.id;
+        edge_list[target_id][source_id] = link.id;
+    }
+
+    return dijkstra({start: sourceID, end: targetID}, road_to, edge_list, total_node_num);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function pathfinding(sourceID, targetID, directedSearch, searchType) {
       var graphStats = {};
       
@@ -755,8 +902,9 @@ function setTarget(d) {
   
   var directedValue = document.getElementById('directedCheck').checked;
   
-  var computedPathArray = pathfinding(pathSource,d.id,directedValue,"individual");
-  
+  var computedPathArray = pathfinding2(pathSource,d.id,directedValue,"individual");
+
+  console.log(computedPathArray);
   if (computedPathArray.nodes[0] == "Path not found") {
     d3.select("#definitionbox").html("No path");
     d3.selectAll("circle.node").transition().duration(300).style("fill", function(p) {return [d.id,pathSource].indexOf(p.id) > -1 ? "blue" : "black"});
@@ -764,10 +912,10 @@ function setTarget(d) {
   }
   else {
     computedPathArray.paths.reverse();
-    computedPathArray.nodes.reverse();
-    d3.select("#definitionbox").html("<span style='color:blue;'>Path from " + pathSource + " to " + d.id +"</span>");
+	computedPathArray.nodes.reverse();
+    d3.select("#definitionbox").html("<span style='color:blue;'>Path from " + pathSource + " to " + d.id + ". Total cost is " + computedPathArray.total_cost + "</span>");
     d3.selectAll("circle.node").transition().delay(function(d) {return computedPathArray.nodes.indexOf("" + d.id) > -1 ? (computedPathArray.nodes.indexOf("" + d.id) * 500) + 500 : 0}).duration(300).style("fill", function(d) {return computedPathArray.nodes.indexOf(d.id) > -1 ? "blue" : "pink"});
-    d3.selectAll("line.link").transition().delay(function(d) {return computedPathArray.paths.indexOf("" + d.id) > -1 ? (computedPathArray.paths.indexOf("" + d.id) * 500) + 500 : 0}).duration(300).style("stroke", function(d) {return computedPathArray.paths.indexOf("" + d.id) > -1 ? "blue" : "pink"});
+    d3.selectAll("line.link").transition().delay(function(d) {return computedPathArray.paths.indexOf(d.id) > -1 ? (computedPathArray.paths.indexOf(d.id) * 500) + 500 : 0}).duration(300).style("stroke", function(d) {return computedPathArray.paths.indexOf(d.id) > -1 ? "blue" : "pink"});
   }
       d3.selectAll("g.node").on("click", null).style("cursor","auto");
   pathSource = "";
