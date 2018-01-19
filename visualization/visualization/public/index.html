@@ -6,10 +6,6 @@
 
 <body>
 	<div id="graph">
-		<form>
-			Gravity <input id="gravitySlider" type="range" onchange="updateForce(); changeGravity()" min ="0" max="1" step =".01"  value=".1" />
-			<input type="text" id="gravityInput" value=".1" />
-		</form>
 		<div id="definitionbox" height="1px">
 		</div>
 	</div>
@@ -22,11 +18,11 @@
 
 		<div>
 			<ol>
-				<li>Layouts</li>
-				<li><input type="button" value="Force-Directed" onclick='updateForce(); updateText("forcealgo")'><input type="button" value="Plot" onclick='plotLayout(); updateText("plotlayout")'></li>
 				<li>Features</li>
-				<li><input type="button" value="Pathfinding" onclick='selectPath(); updateText("pathfinding")'></li>
-				<li><input type="button" value="Centrality" onclick='calculateCentrality(); updateText("centrality")' />
+				<li><input type="button" value="Shortest Path" onclick='selectPath(); updateText("pathfinding")'></li>
+				<li><input type="button" value="Centrality" onclick='calculateCentrality(); updateText("centrality")'></li>
+				<li><input type="button" value="Connected Component" onclick='getConnectedComponent(); updateText("connectedcomponent")'></li>
+				<li><input type="button" value="Minimum Spanning Tree" onclick='getSpanningTree(); updateText("spanningtree")'></li>
 			</ol>
 		</div>
 

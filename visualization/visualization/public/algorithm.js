@@ -7,12 +7,12 @@ var fill = d3.scale.category20();
 
 // set the initial state
 randomGraph(50, 0.025);
-updateText("introduction");
+updateText("initialpage");
 
 function updateText(lessonType) {
 	switch(lessonType) {        
-		case "introduction":
-		d3.select("#text").html("<h2>Introduction</h2><p>Networks and network analysis has grown more prominent in both humanities scholarship and public discourse. In this context, networks--also known as graphs or node-link diagrams--are \"a set of vertices (also called points or nodes) which represent the entities of research interest, and a set of lines (or ties) between these vertices which represent their relationships.\" [1]</p><p>This interactive application is designed to provide an overview of various network analysis principles used for analysis and representation. It also provides a few examples of untraditional networks used in digital humanities scholarship. Finally, along with the various methods described interactively here are links to related scholarship.</p><p>Each network type is listed in the Models section, and can be paired with an analysis or representation method by simply clicking on a network type to load a new network, and then clicking on an analysis or visualization method.</p><p>Networks are represented using traditional force-directed techniques or by plotting along the xy axis based on numerical attributes of the nodes (longitude and latitude in the case of nodes that represent geographic entities). For the force directed layout, you can adjust the various force principles to see how this affects the representation of the network you're working with.</p><p>This implementation will likely remain a work-in-progress for some time, and if you notice any flaws or discrepencies, or have a suggestion, please contact <a href='mailto:emeeks@stanford.edu'>Elijah Meeks</a>.</p>");
+		case "initialpage":
+		d3.select("#text").html("<h2>Please choose a feature</h2>");
 		break;
 		case "pathfinding":
 		d3.select("#text").html("<h2>Shortest Path</h2><p>Finding the shortest path between two nodes in a network.<br>We used Dijkstra's algorithm to accomplish pathfiding.</p>");
@@ -22,7 +22,12 @@ function updateText(lessonType) {
 		break;
 		case "forcealgo":
 		d3.select("#text").html("<h2>Force-Directed Layout</h2><p>A popular method for laying out networks is to assign repulsive and attractive forces to nodes and links so that the emergent behavior of the competing forces produces a network that is more legible than manually or hierarchically placing the nodes. These competing forces are typcially a repulsive force exerted by nodes (which can be based on a numerical attribute of the node or a fixed value), an attractive force exerted by shared links between nodes (which can be based on the strength of the length, typically known as \"weight\" or fixed) and a canvas gravity that draws nodes toward the center of the screen and prevents them from being pushed beyond the view of the user.</p><p>Force-directed layouts do not typically assign any value to a node being placed along the x- or y-axis beyond the confluence of forces acting upon it from nearby nodes and links. As a result, even a very stable and readable force-directed layout can be mirrored or rotated without otherwise changing. This has had the effect upon scholars of assuming that there was something wrong with a force-directed layout that placed a node on the 'top' or 'left' in one layout but on the 'bottom' or 'right' in another. Such behavior is part of the force-directed layout unless specifically designed otherwise.</p>");
-		break;
+        break;
+        case "connectedcomponent":
+        d3.select("#text").html("<form>Gravity <input id=\"gravitySlider\" type=\"range\" onchange=\"updateForce(); changeGravity()\" min =\"0\" max=\"1\" step =\".01\"  value=\".1\" /><input type=\"text\" id=\"gravityInput\" value=\".1\" /></form>");
+        break;
+        case "spanningtree":
+        break;
 	}
 }
 
@@ -197,33 +202,6 @@ function randomGraph(nodeNumber, linkChance) {
 	d3.select("#networkViz").remove();
 	initializeGraph(newGraphObj);
 }
-
-function plotLayout() {
-  force.stop();
-  minX = d3.min(nodes, function(d) {return parseFloat(d["long"])});
-  maxX = d3.max(nodes, function(d) {return parseFloat(d["long"])});
-  minY = d3.min(nodes, function(d) {return parseFloat(d["lat"])});
-  maxY = d3.max(nodes, function(d) {return parseFloat(d["lat"])});
-  heightRamp=d3.scale.linear().domain([minY,maxY]).range([550,50]).clamp(true);
-  widthRamp=d3.scale.linear().domain([minX,maxX]).range([50,450]).clamp(true);
-  
-  d3.selectAll("g.node").transition().duration(1000).attr("transform",function(d) {return "translate(" + widthRamp(parseFloat(d["long"])) + "," + heightRamp(parseFloat(d["lat"])) + ")"})
-  for (x in nodes) {
-    nodes[x].x = widthRamp(parseFloat(nodes[x].long));
-    nodes[x].px = widthRamp(parseFloat(nodes[x].long));
-    nodes[x].y = heightRamp(parseFloat(nodes[x].lat));
-    nodes[x].py = heightRamp(parseFloat(nodes[x].lat));
-  }
-  
-  link.transition().duration(1000).attr("x1", function(d) { return widthRamp(d.source.long); })
-      .attr("y1", function(d) { return heightRamp(d.source.lat); })
-      .attr("x2", function(d) { return widthRamp(d.target.long); })
-      .attr("y2", function(d) { return heightRamp(d.target.lat); });
-    arrowhead.transition().duration(1000)
-    .attr("cx", function(d) {return ((d.target.x * .9) + (d.source.x * .1))})
-    .attr("cy", function(d) {return ((d.target.y * .9) + (d.source.y * .1))})
-}
-
 
 function resize(byValue) {
   currentSizing = byValue;
@@ -441,7 +419,7 @@ function setTarget(d) {
 	else {
 		computedPathArray.paths.reverse();
 		computedPathArray.nodes.reverse();
-		d3.select("#definitionbox").html("<span style='color:brown;'>Path from " + sourceNode + " to " + d.id + ". Total cost is " + computedPathArray.total_cost + "</span>");
+		d3.select("#definitionbox").html("<span style='color:#FA8806;'>Path from " + sourceNode + " to " + d.id + ".<br>Total cost is " + computedPathArray.total_cost + ".<br>The path is " + computedPathArray.nodes + "</span>");
 		d3.selectAll("circle.node").transition().delay(function(d) {return computedPathArray.nodes.indexOf("" + d.id) > -1 ? (computedPathArray.nodes.indexOf("" + d.id) * 500) + 500 : 0}).duration(300).style("fill", function(d) {return computedPathArray.nodes.indexOf(d.id) > -1 ? "brown" : "#FA8806"});
 		d3.selectAll("line.link").transition().delay(function(d) {return computedPathArray.paths.indexOf(d.id) > -1 ? (computedPathArray.paths.indexOf(d.id) * 500) + 500 : 0}).duration(300).style("stroke", function(d) {return computedPathArray.paths.indexOf(d.id) > -1 ? "brown" : "#999"});
 	}
@@ -473,4 +451,12 @@ function calculateCentrality() {
 	d3.select("#definitionbox").html("Calculating paths...");
 	graphStats = findPath(0, 0, true);
 	sizeByStats("Closeness");   
+}
+
+function getSpanningTree() {
+
+}
+
+function getConnectedComponent() {
+
 }

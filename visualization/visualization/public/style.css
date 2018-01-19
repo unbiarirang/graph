@@ -4,44 +4,47 @@ html, body {
     color: #444;
     font: 1em/1 "Hoefler Text", "Georgia", Georgia, serif, sans-serif;
     padding: 10px;
-  }
-  ol {
+}
+#definitionbox {
+  line-height:1.5em;
+}
+ol {
     list-style-type: none;
-  }
-  li {
+}
+li {
     font-size:1.2em;
     color:#FA8806;
-  }
-  h1 {font-weight:400;font-size:1.6em;line-height:0.9em;padding:0px 0 0;margin: 1em 0em .25em 0em; color:#FA8806;}
-  h1 a{font-weight:100;letter-spacing:-0.05em;position:relative;}
-  h2 {font-weight:50;font-size:1.2em;letter-spacing:-0.05em;position:relative; color:#444;margin: 0;}
-  h3 {font-weight:50;font-size:1.0em;letter-spacing:-0.03em;position:relative; color:#FA8806;margin: 0;}
-  rect {
+}
+h1 {font-weight:400;font-size:1.6em;line-height:0.9em;padding:0px 0 0;margin: 1em 0em .25em 0em; color:#FA8806;}
+h1 a{font-weight:100;letter-spacing:-0.05em;position:relative;}
+h2 {font-weight:50;font-size:1.2em;letter-spacing:-0.05em;position:relative; color:#444;margin: 0;}
+h3 {font-weight:50;font-size:1.0em;letter-spacing:-0.03em;position:relative; color:#FA8806;margin: 0;}
+rect {
     fill: none;
     pointer-events: all;
-  }
-  .node {
+}
+.node {
     fill: #FA8806;
-  }
-  .cursor {
+}
+.cursor {
     fill: none;
     stroke: brown;
     pointer-events: none;
-  }
-  .link {
+}
+.link {
     stroke: #999;
-  }
-  #graph {
+}
+#graph {
     height: 100%;
     width: 50%;
     float: left;
-  }
-  #lesson {
+}
+#lesson {
     height: 100%;
     width: 45%;
     float: left;
-  }
-  #definitionbox {
+}
+#definitionbox {
     margin-top: 20px;
     margin-right: 100px;
     font-style: italic;
@@ -49,10 +52,10 @@ html, body {
     color:#707070;
     height: 0;
     overflow: visible;
-  }
-  #citations {
+}
+#citations {
     margin-top: 20px;
-  }
-  #codetext {
-      font: 1em/1 "Courier New", Courier, monospace;
-  }
+}
+#codetext {
+    font: 1em/1 "Courier New", Courier, monospace;
+}
