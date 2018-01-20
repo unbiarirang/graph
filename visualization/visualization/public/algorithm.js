@@ -6,7 +6,7 @@ var width = 500,
 var fill = d3.scale.category20();
 
 // set the initial state
-randomGraph(50, 0.025);
+//randomGraph(50, 0.025);
 updateText("initialpage");
 
 function updateText(lessonType) {
@@ -178,30 +178,36 @@ function updateForce() {
 	force.gravity(newGravity);
 	force.start();
 }
+d3.json("data.json",function(graph){
+    newGraphObj = {nodes: [], links: []};	
+    d3.select("#networkViz").remove();
+    initializeGraph(graph);
+})
 
-function randomGraph(nodeNumber, linkChance) {
-	newGraphObj = {nodes: [], links: []};
-	var x=0;
-	while (x < nodeNumber) {
-		var randomLat = Math.random();
-		var randomLong = Math.random();
-		var newNodeObj = {label: "Node"+x, id: x, lat: randomLat, long: randomLong}
-		newGraphObj.nodes.push(newNodeObj);
-		var y=0;
-		while (y < nodeNumber) {
-			if (y != x && Math.random() < linkChance) {
-				var randomEdgeWeight = Math.random();
-				newLinkObj = {source: x, target: y, weight: randomEdgeWeight, cost: randomEdgeWeight}
-				newGraphObj.links.push(newLinkObj);
-			}
-			y++;
-		}
-		x++;
-	}
+//function randomGraph(nodeNumber, linkChance) {
+//	newGraphObj = {nodes: [], links: []};
+//	var x=0;
+//	while (x < nodeNumber) {
+//		var randomLat = Math.random();
+//		var randomLong = Math.random();
+//		var newNodeObj = {label: "Node"+x, id: x, lat: randomLat, long: randomLong}
+//		newGraphObj.nodes.push(newNodeObj);
+//		var y=0;
+//		while (y < nodeNumber) {
+//			if (y != x && Math.random() < linkChance) {
+//				var randomEdgeWeight = Math.random();
+//				newLinkObj = {source: x, target: y, weight: randomEdgeWeight, cost: randomEdgeWeight}
+//				newGraphObj.links.push(newLinkObj);
+//			}
+//			y++;
+//		}
+//		x++;
+//	}
 	
-	d3.select("#networkViz").remove();
-	initializeGraph(newGraphObj);
-}
+//	d3.select("#networkViz").remove();
+//	initializeGraph(newGraphObj);
+//}
+
 
 function resize(byValue) {
   currentSizing = byValue;
