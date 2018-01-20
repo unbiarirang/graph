@@ -1,6 +1,6 @@
 #include"Matrix.h"
 #include"Node.h"
-
+#define MAX 10000;
 void v_MAT(int **v_next,int **v_weight, Node *key,Node *saveid)
 {
 	Node *tmp;
@@ -65,5 +65,35 @@ void ergodic(Node *id, int **v_next,int **v_weight,Node *saveid)
 	     }
 			if(head==NULL)
 				break;
+	}
+}
+
+void prim(int **v_weightMAT,int n,int *group,int start)
+{
+	int *mindst;
+	int *MST;
+	int i,j,min,minid;
+	mindst=new int[n+1];
+	MST=new int[n+1];
+	mindst[start]=0;
+	for(int i=start+1;i<n+1;i++)
+	{
+		mindst[i]=v_weightMAT[start+1][i];
+		MST[i]=start;
+	}
+	MST[start]=0;
+	for(i=start+1;i<n+1;i++)
+	{
+		min=MAX;
+		minid=0;
+		for(j=0;j<n+1;j++)
+		{
+			if(mindst[j]<min&&mindst[j]!=0)
+			{
+				min=mindst[j];
+				minid=j;
+			}
+		}
+		
 	}
 }
