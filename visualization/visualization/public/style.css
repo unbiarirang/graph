@@ -5,9 +5,6 @@ html, body {
     font: 1em/1 "Hoefler Text", "Georgia", Georgia, serif, sans-serif;
     padding: 10px;
 }
-#definitionbox {
-  line-height:1.5em;
-}
 ol {
     list-style-type: none;
 }
@@ -44,7 +41,7 @@ rect {
     width: 45%;
     float: left;
 }
-#definitionbox {
+#lefttext {
     margin-top: 20px;
     margin-right: 100px;
     font-style: italic;
@@ -52,6 +49,7 @@ rect {
     color:#707070;
     height: 0;
     overflow: visible;
+    line-height:1.5em;
 }
 #citations {
     margin-top: 20px;

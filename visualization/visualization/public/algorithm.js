@@ -27,6 +27,7 @@ function updateText(lessonType) {
         d3.select("#text").html("<form>Gravity <input id=\"gravitySlider\" type=\"range\" onchange=\"updateForce(); changeGravity()\" min =\"0\" max=\"1\" step =\".01\"  value=\".1\" /><input type=\"text\" id=\"gravityInput\" value=\".1\" /></form>");
         break;
         case "spanningtree":
+        d3.select("#text").html("");
         break;
 	}
 }
@@ -100,7 +101,7 @@ function tick() {
 }
 
 function changeGravity() {
-    d3.select("#definitionbox").html("Canvas gravity draws all nodes toward the center of the canvas, preventing them from flying out of view.");
+    d3.select("#lefttext").html("Canvas gravity draws all nodes toward the center of the canvas, preventing them from flying out of view.");
 }
 
 function highlightNodes() {
@@ -108,11 +109,11 @@ function highlightNodes() {
 	d3.selectAll("circle.node").transition().delay(300).duration(300).style("stroke-width", 0);
 	if (document.getElementById('nodeCheckbox').checked == true) {
 		document.getElementById("repulsionSlider").disabled=true;
-		d3.select("#definitionbox").html("Nodes exert a repulsion on other nodes based on their degree centrality.");
+		d3.select("#lefttext").html("Nodes exert a repulsion on other nodes based on their degree centrality.");
 	}
 	else {
 		document.getElementById("repulsionSlider").disabled=false;
-		d3.select("#definitionbox").html("Nodes exert a fixed value of repulsion set with the slider.");
+		d3.select("#lefttext").html("Nodes exert a fixed value of repulsion set with the slider.");
 	}
 }
 
@@ -121,11 +122,11 @@ function highlightEdges() {
 	d3.selectAll("line.link").transition().delay(300).duration(300).style("stroke", "#999999")
 	if (document.getElementById('edgeCheckbox').checked == true) {
 		document.getElementById("attractionSlider").disabled=true;
-		d3.select("#definitionbox").html("Nodes attract connected nodes based on the strength of the shared link.");
+		d3.select("#lefttext").html("Nodes attract connected nodes based on the strength of the shared link.");
 	}
 	else {
 		document.getElementById("attractionSlider").disabled=false;
-		d3.select("#definitionbox").html("Nodes attract connected nodes based on the fixed value set on the slider.");
+		d3.select("#lefttext").html("Nodes attract connected nodes based on the fixed value set on the slider.");
 	}
 }
 
@@ -400,26 +401,31 @@ function findPath(sourceID, targetID, centrality_flag) {
 }
 
 function selectPath() {
-	d3.selectAll("g.node").on("click",setSource).style("cursor", "pointer")
-	d3.select("#definitionbox").html("Select a node to compute a path from");
+	d3.selectAll("g.node").on("click" ,setSource).style("cursor", "pointer")
+	d3.select("#lefttext").html("Select a node to compute a path from");
+}
+function selectNode() {
+    d3.selectAll("g.node").on("click", function(d) { sourceNode = d.id; console.log(sourceNode); }).style("cursor", "pointer");
+    d3.select("#lefttext").html("Select a node to compute a minimum spanning tree");
+    getSpanningTree();
 }
 function setSource(d) {
 	sourceNode = d.id;
 	d3.selectAll("g.node").on("click",setTarget);
-	d3.select("#definitionbox").html(d.id + "selected - select a node to compute the path to");
+	d3.select("#lefttext").html(d.id + "selected - select a node to compute the path to");
 }
 function setTarget(d) {
 	var computedPathArray = findPath(sourceNode, d.id);
 
 	if (computedPathArray.nodes[0] == "Path not found") {
-		d3.select("#definitionbox").html("No path");
+		d3.select("#lefttext").html("No path");
 		d3.selectAll("circle.node").transition().duration(300).style("fill", function(p) {return [d.id,sourceNode].indexOf(p.id) > -1 ? "brown" : "black"});
 		d3.selectAll("line.link").transition().duration(300).style("stroke","black");
 	}
 	else {
 		computedPathArray.paths.reverse();
 		computedPathArray.nodes.reverse();
-		d3.select("#definitionbox").html("<span style='color:#FA8806;'>Path from " + sourceNode + " to " + d.id + ".<br>Total cost is " + computedPathArray.total_cost + ".<br>The path is " + computedPathArray.nodes + "</span>");
+		d3.select("#lefttext").html("<span style='color:#FA8806;'>Path from " + sourceNode + " to " + d.id + ".<br>Total cost is " + computedPathArray.total_cost + ".<br>The path is " + computedPathArray.nodes + "</span>");
 		d3.selectAll("circle.node").transition().delay(function(d) {return computedPathArray.nodes.indexOf("" + d.id) > -1 ? (computedPathArray.nodes.indexOf("" + d.id) * 500) + 500 : 0}).duration(300).style("fill", function(d) {return computedPathArray.nodes.indexOf(d.id) > -1 ? "brown" : "#FA8806"});
 		d3.selectAll("line.link").transition().delay(function(d) {return computedPathArray.paths.indexOf(d.id) > -1 ? (computedPathArray.paths.indexOf(d.id) * 500) + 500 : 0}).duration(300).style("stroke", function(d) {return computedPathArray.paths.indexOf(d.id) > -1 ? "brown" : "#999"});
 	}
@@ -437,7 +443,7 @@ function sizeByStats(statname) {
 		}
     }
     
-    d3.select("#definitionbox").html("Nodes are now sized by " + statname);
+    d3.select("#lefttext").html("Nodes are now sized by " + statname);
 	var sizeRamp = d3.scale.linear().domain([minStat,maxStat]).range([2,10]).clamp(true);
 	d3.selectAll("circle.node").transition().duration(300).attr("r", function(d,i) {return graphStats[nodes[i].id][statname] > 0 ? sizeRamp(graphStats[nodes[i].id][statname]) : 1});
 	d3.selectAll("image.node").transition().duration(300)
@@ -448,15 +454,76 @@ function sizeByStats(statname) {
 }
 
 function calculateCentrality() {
-	d3.select("#definitionbox").html("Calculating paths...");
+	d3.select("#lefttext").html("Calculating paths...");
 	graphStats = findPath(0, 0, true);
 	sizeByStats("Closeness");   
 }
 
-function getSpanningTree() {
+function findMinEdge(V, E, road_to, edge_list, total_node_num, edge_min) {
+    for (var i = 0; i < V.length; i++) {
+        for (var j = 0; j < total_node_num; j++) {
+            var start_node = V[i];
+            console.log("start node:", start_node);
+            if (road_to[start_node][j] == edge_min) {
+                var match1 = V.find(function(node_id) { return node_id == start_node});
+                var match2 = V.find(function(node_id) { return node_od == j});
+                if (match1 && !match2) {
+                    V.push(j);
+                    E.push(edge_list[start_node][j]);
+                    return {start: start_node, end: j};
+                }
+            }
+        }
+    }
+    return findMinEdge(V, E, road_to, edge_list, total_node_num, edge_min + 1);
+}
 
+function getSpanningTree() {
+    console.log("a");
+    
+    var sourceID = sourceNode;
+    var total_node_num = nodes.length;
+    
+    // init road_to and edge_list
+    var road_to = new Array(nodes.length);        // distance between two nodes
+    var edge_list = new Array(links.length);      // edge id between two nodes
+    for (var i = 0; i < total_node_num; i++) {
+        road_to[i] = new Array(total_node_num);
+        edge_list[i] = new Array(links.length);
+
+        for (var j = 0; j < total_node_num; j++)
+            road_to[i][j] = INF;
+        road_to[i][i] = 0;
+    }
+
+    for (var index in links) {
+        var link = links[index];
+        var source_id = link.source.id;
+        var target_id = link.target.id;
+        var cost = link.cost;
+
+        road_to[source_id][target_id] = cost;
+        road_to[target_id][source_id] = cost;
+
+        edge_list[source_id][target_id] = link.id;
+        edge_list[target_id][source_id] = link.id;
+    }
+    console.log(sourceID);
+
+    var V = [];
+    var E = [];
+    V.push(sourceID);
+    findMinEdge(V, E, road_to, edge_list, total_node_num, 0);
+    console.log(V, E);
+
+    sourceNode = "";
 }
 
 function getConnectedComponent() {
+    selectNode();
+    d3.select("#lefttext").html("Select a node to compute a connected component");
+    var sourceID = sourceNode;
 
+
+    sourceNode = "";
 }
