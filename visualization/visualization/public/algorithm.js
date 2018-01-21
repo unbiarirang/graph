@@ -6,7 +6,7 @@ var width = 500,
 var fill = d3.scale.category20();
 
 // set the initial state
-randomGraph(15, 0.075);
+randomGraph(50, 0.025);
 updateText("initialpage");
 
 function updateText(lessonType) {
@@ -20,11 +20,8 @@ function updateText(lessonType) {
 		case "centrality":
 		d3.select("#text").html("<h2>Centrality</h2><br><h3>1. Closeness</h3><p>The average shortest path cost to all the nodes in the network.</p><input type='button' onclick='sizeByStats(\"Closeness\")' value='Closeness'/><br><br><h3>2. Betweenness</h3><p>The number of times a node is crossed for every shortest path in the network.</p><input type='button' onclick='sizeByStats(\"Betweenness\")' value='Betweenness Centrality' />");
 		break;
-		case "forcealgo":
-		d3.select("#text").html("<h2>Force-Directed Layout</h2><p>A popular method for laying out networks is to assign repulsive and attractive forces to nodes and links so that the emergent behavior of the competing forces produces a network that is more legible than manually or hierarchically placing the nodes. These competing forces are typcially a repulsive force exerted by nodes (which can be based on a numerical attribute of the node or a fixed value), an attractive force exerted by shared links between nodes (which can be based on the strength of the length, typically known as \"weight\" or fixed) and a canvas gravity that draws nodes toward the center of the screen and prevents them from being pushed beyond the view of the user.</p><p>Force-directed layouts do not typically assign any value to a node being placed along the x- or y-axis beyond the confluence of forces acting upon it from nearby nodes and links. As a result, even a very stable and readable force-directed layout can be mirrored or rotated without otherwise changing. This has had the effect upon scholars of assuming that there was something wrong with a force-directed layout that placed a node on the 'top' or 'left' in one layout but on the 'bottom' or 'right' in another. Such behavior is part of the force-directed layout unless specifically designed otherwise.</p>");
-        break;
         case "connectedcomponent":
-        d3.select("#text").html("<form>Gravity <input id=\"gravitySlider\" type=\"range\" onchange=\"updateForce(); changeGravity()\" min =\"0\" max=\"10\" step =\".01\"  value=\".1\" /><input type=\"text\" id=\"gravityInput\" value=\".1\" /></form>");
+        d3.select("#text").html("<form>Threshold <input id=\"thresholdSlider\" type=\"range\" onchange=\"updateThreshold(); changeThreshold()\" min =\"0\" max=\"10\" step =\".01\"  value=\"0\" /><input type=\"text\" id=\"thresholdInput\" value=\"0\" /></form>");
         break;
         case "spanningtree":
         d3.select("#text").html("");
@@ -49,7 +46,8 @@ function initializeGraph(newGraph) {
 		.nodes(newNodes) // initialize with a single node
 		.links(newLinks)
 		.linkDistance(60)
-		.charge(-60)
+        .charge(-60)
+        .gravity(0.05)
 		.on("tick", tick);
 	var svg = d3.select("#graph").append("svg")
 		.attr("width", width)
@@ -100,8 +98,8 @@ function tick() {
     arrowhead.attr("cx", function(d) {return ((d.target.x * .9) + (d.source.x * .1))}).attr("cy", function(d) {return ((d.target.y * .9) + (d.source.y * .1))})
 }
 
-function changeGravity() {
-    d3.select("#lefttext").html("Canvas gravity draws all nodes toward the center of the canvas, preventing them from flying out of view.");
+function changeThreshold() {
+    d3.select("#lefttext").html("Threshold changed.");
 }
 
 function highlightNodes() {
@@ -170,15 +168,11 @@ function getBetweenness() {
 	updateText("Betweenness");
 }
 
-function updateForce() {
-	// force.stop();
-	
-	var newGravity = document.getElementById('gravitySlider').value;
-	// document.getElementById('gravityInput').value = newGravity;
-	
-	// force.gravity(newGravity);
-    // force.start();
-    getConnectedComponent(newGravity);
+function updateThreshold() {
+	var newThreshold = document.getElementById('thresholdSlider').value;
+	document.getElementById('thresholdInput').value = newThreshold;
+
+    getConnectedComponent(newThreshold);
 }
 // d3.json("data.json",function(graph){
 //     newGraphObj = {nodes: [], links: []};	
@@ -419,11 +413,9 @@ function selectNodeSpanningTree() {
     d3.selectAll("g.node").on("click", function(d) { sourceNode = d.id; getSpanningTree(); d3.selectAll("g.node").on("click", null).style("cursor","auto");}).style("cursor", "pointer");
     d3.select("#lefttext").html("Select a node to compute a minimum spanning tree");
 }
-function selectNodeConnectedComponent() {
-    d3.selectAll("line.link").transition().duration(300).style("stroke","#999");
-    d3.selectAll("circle.node").style("fill", "#FA8806");
-    d3.selectAll("g.node").on("click", function(d) { sourceNode = d.id; getConnectedComponent(document.getElementById('gravitySlider').value); d3.selectAll("g.node").on("click", null).style("cursor","auto");}).style("cursor", "pointer");
-    d3.select("#lefttext").html("Select a node to compute a connected component");
+function computeNodeConnectedComponent() {
+    d3.select("#lefttext").html("You change change threshold with slider");
+    getConnectedComponent(0);
 }
 function setSource(d) {
 	sourceNode = d.id;
@@ -496,7 +488,6 @@ function findMinEdge(V, E, road_to, edge_list, component_nodes, component_node_n
                 if (road_to[start_node][end_node] < edge_min) {
                     edge_min = road_to[start_node][end_node];
                     edge = {start_node: start_node, end_node: end_node};
-                    console.log("edge: ", edge);
                     if ((i == V.length - 1) && (j == component_node_num - 1)) {return callback(connected_flag, edge);}
                 }
                 else if ((i == V.length - 1) && (j == component_node_num - 1)) {return callback(connected_flag, edge);}
@@ -510,9 +501,6 @@ function getSpanningTree() {
     var sourceID = sourceNode;
     var total_node_num = nodes.length;
 
-    console.log("nodes: ", nodes);
-    console.log("links: ", links);
-    
     // init road_to and edge_list
     var road_to = new Array(nodes.length);        // distance between two nodes
     var edge_list = new Array(links.length);      // edge id between two nodes
@@ -549,7 +537,6 @@ function getSpanningTree() {
     while (true) {
         if (V.length >= component_node_num) break;
         if (flag) break;
-        console.log("V.length: ", V.length);
 
         var edge_min = INF;
         for (var i = 0; i < V.length; i++) {
@@ -561,17 +548,12 @@ function getSpanningTree() {
         }
 
         findMinEdge(V, E, road_to, edge_list, component_nodes, component_node_num, function (connected_flag, edge) {
-            console.log("connected_flag, edge: ", connected_flag, edge);
-            if (connected_flag === false) {
-                console.log("이어져 있는 점이 없다. 지금은 이거 나오면 안됨");
+            if (connected_flag === false)
                 flag = true;
-            }
             else {
                 if (!edge) return;
                 V.push(edge.end_node);
                 E.push(edge_list[edge.start_node][edge.end_node]);
-                console.log("V: ", V);
-                console.log("E: ", E);
             }
         });
     }
