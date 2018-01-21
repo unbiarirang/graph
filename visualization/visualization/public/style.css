@@ -5,7 +5,7 @@ html, body {
     font: 1em/1 "Hoefler Text", "Georgia", Georgia, serif, sans-serif;
     padding: 10px;
 }
-#definitionbox {
+#lefttext {
   line-height:1.5em;
 }
 ol {
@@ -44,7 +44,7 @@ rect {
     width: 45%;
     float: left;
 }
-#definitionbox {
+#lefttext {
     margin-top: 20px;
     margin-right: 100px;
     font-style: italic;
