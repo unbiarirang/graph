@@ -4,9 +4,7 @@ var sourceNode = "";
 var width = 500,
     height = 600;
 var fill = d3.scale.category20();
-
-
-
+randomGraph(150, 0.005);
 updateText("initialpage");
 
 // update right side text according to button press event
@@ -48,7 +46,7 @@ function initializeGraph(newGraph) {
 		.links(newLinks)
 		.linkDistance(60)
         .charge(-60)
-        .gravity(0.05)
+        .gravity(0.1)
 		.on("tick", tick);
 	var svg = d3.select("#graph").append("svg")
 		.attr("width", width)
@@ -149,29 +147,11 @@ function restart() {
 	resize(currentSizing);
 }
 
-<<<<<<< HEAD
-function getBetweenness() {
-	updateText("Betweenness");
-}
-
-function updateThreshold() {
-	var newThreshold = document.getElementById('thresholdSlider').value;
-	document.getElementById('thresholdInput').value = newThreshold;
-
-    getConnectedComponent(newThreshold);
-}
-d3.json("data.json",function(graph){
-    newGraphObj = {nodes: [], links: []};	
-    d3.select("#networkViz").remove();
-    initializeGraph(graph);
-});
-=======
 // d3.json("data.json",function(graph){
 //     newGraphObj = {nodes: [], links: []};	
 //     d3.select("#networkViz").remove();
 //     initializeGraph(graph);
 // });
->>>>>>> 1ceffce60ec4f804c46c3db676e1d41466bdc883
 
 function randomGraph(nodeNumber, linkChance) {
 	newGraphObj = {nodes: [], links: []};
