@@ -24,7 +24,7 @@ function updateText(lessonType) {
 		d3.select("#text").html("<h2>Force-Directed Layout</h2><p>A popular method for laying out networks is to assign repulsive and attractive forces to nodes and links so that the emergent behavior of the competing forces produces a network that is more legible than manually or hierarchically placing the nodes. These competing forces are typcially a repulsive force exerted by nodes (which can be based on a numerical attribute of the node or a fixed value), an attractive force exerted by shared links between nodes (which can be based on the strength of the length, typically known as \"weight\" or fixed) and a canvas gravity that draws nodes toward the center of the screen and prevents them from being pushed beyond the view of the user.</p><p>Force-directed layouts do not typically assign any value to a node being placed along the x- or y-axis beyond the confluence of forces acting upon it from nearby nodes and links. As a result, even a very stable and readable force-directed layout can be mirrored or rotated without otherwise changing. This has had the effect upon scholars of assuming that there was something wrong with a force-directed layout that placed a node on the 'top' or 'left' in one layout but on the 'bottom' or 'right' in another. Such behavior is part of the force-directed layout unless specifically designed otherwise.</p>");
         break;
         case "connectedcomponent":
-        d3.select("#text").html("<form>Gravity <input id=\"gravitySlider\" type=\"range\" onchange=\"updateForce(); changeGravity()\" min =\"0\" max=\"1\" step =\".01\"  value=\".1\" /><input type=\"text\" id=\"gravityInput\" value=\".1\" /></form>");
+        d3.select("#text").html("<form>Gravity <input id=\"gravitySlider\" type=\"range\" onchange=\"updateForce(); changeGravity()\" min =\"0\" max=\"10\" step =\".01\"  value=\".1\" /><input type=\"text\" id=\"gravityInput\" value=\".1\" /></form>");
         break;
         case "spanningtree":
         d3.select("#text").html("");
@@ -171,13 +171,14 @@ function getBetweenness() {
 }
 
 function updateForce() {
-	force.stop();
+	// force.stop();
 	
 	var newGravity = document.getElementById('gravitySlider').value;
-	document.getElementById('gravityInput').value = newGravity;
+	// document.getElementById('gravityInput').value = newGravity;
 	
-	force.gravity(newGravity);
-	force.start();
+	// force.gravity(newGravity);
+    // force.start();
+    getConnectedComponent(newGravity);
 }
 // d3.json("data.json",function(graph){
 //     newGraphObj = {nodes: [], links: []};	
@@ -421,7 +422,7 @@ function selectNodeSpanningTree() {
 function selectNodeConnectedComponent() {
     d3.selectAll("line.link").transition().duration(300).style("stroke","#999");
     d3.selectAll("circle.node").style("fill", "#FA8806");
-    d3.selectAll("g.node").on("click", function(d) { sourceNode = d.id; getConnectedComponent(); d3.selectAll("g.node").on("click", null).style("cursor","auto");}).style("cursor", "pointer");
+    d3.selectAll("g.node").on("click", function(d) { sourceNode = d.id; getConnectedComponent(document.getElementById('gravitySlider').value); d3.selectAll("g.node").on("click", null).style("cursor","auto");}).style("cursor", "pointer");
     d3.select("#lefttext").html("Select a node to compute a connected component");
 }
 function setSource(d) {
@@ -645,7 +646,7 @@ function getComponent(start_node, road_to, res) {
     return res;
 }
 
-function getConnectedComponent() {
+function getConnectedComponent(threshold) {
     var sourceID = sourceNode;
     var total_node_num = nodes.length;
 
@@ -658,15 +659,25 @@ function getConnectedComponent() {
         road_to[i][i] = 0;
     }
 
+    var weak_links = [];
     for (var index in links) {
         var link = links[index];
         var source_id = link.source.id;
         var target_id = link.target.id;
         var cost = link.cost;
 
+        // apply threshold
+        if (cost < threshold) {
+            cost = INF;
+            weak_links.push(link.id);
+        }
         road_to[source_id][target_id] = cost;
         road_to[target_id][source_id] = cost;
     }
+
+    d3.selectAll("line.link").style("stroke", function(d) {
+        if (weak_links.find(function(id) {return id == d.id;}) !== undefined) return "white";
+    });
 
     var components = {};
     var component_count = 0;
