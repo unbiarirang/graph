@@ -6,7 +6,7 @@ var width = 500,
 var fill = d3.scale.category20();
 
 // set the initial state
-//randomGraph(50, 0.025);
+randomGraph(50, 0.025);
 updateText("initialpage");
 
 function updateText(lessonType) {
@@ -20,11 +20,8 @@ function updateText(lessonType) {
 		case "centrality":
 		d3.select("#text").html("<h2>Centrality</h2><br><h3>1. Closeness</h3><p>The average shortest path cost to all the nodes in the network.</p><input type='button' onclick='sizeByStats(\"Closeness\")' value='Closeness'/><br><br><h3>2. Betweenness</h3><p>The number of times a node is crossed for every shortest path in the network.</p><input type='button' onclick='sizeByStats(\"Betweenness\")' value='Betweenness Centrality' />");
 		break;
-		case "forcealgo":
-		d3.select("#text").html("<h2>Force-Directed Layout</h2><p>A popular method for laying out networks is to assign repulsive and attractive forces to nodes and links so that the emergent behavior of the competing forces produces a network that is more legible than manually or hierarchically placing the nodes. These competing forces are typcially a repulsive force exerted by nodes (which can be based on a numerical attribute of the node or a fixed value), an attractive force exerted by shared links between nodes (which can be based on the strength of the length, typically known as \"weight\" or fixed) and a canvas gravity that draws nodes toward the center of the screen and prevents them from being pushed beyond the view of the user.</p><p>Force-directed layouts do not typically assign any value to a node being placed along the x- or y-axis beyond the confluence of forces acting upon it from nearby nodes and links. As a result, even a very stable and readable force-directed layout can be mirrored or rotated without otherwise changing. This has had the effect upon scholars of assuming that there was something wrong with a force-directed layout that placed a node on the 'top' or 'left' in one layout but on the 'bottom' or 'right' in another. Such behavior is part of the force-directed layout unless specifically designed otherwise.</p>");
-        break;
         case "connectedcomponent":
-        d3.select("#text").html("<form>Gravity <input id=\"gravitySlider\" type=\"range\" onchange=\"updateForce(); changeGravity()\" min =\"0\" max=\"1\" step =\".01\"  value=\".1\" /><input type=\"text\" id=\"gravityInput\" value=\".1\" /></form>");
+        d3.select("#text").html("<form>Threshold <input id=\"thresholdSlider\" type=\"range\" onchange=\"updateThreshold(); changeThreshold()\" min =\"0\" max=\"10\" step =\".01\"  value=\"0\" /><input type=\"text\" id=\"thresholdInput\" value=\"0\" /></form>");
         break;
         case "spanningtree":
         d3.select("#text").html("");
@@ -49,7 +46,8 @@ function initializeGraph(newGraph) {
 		.nodes(newNodes) // initialize with a single node
 		.links(newLinks)
 		.linkDistance(60)
-		.charge(-60)
+        .charge(-60)
+        .gravity(0.05)
 		.on("tick", tick);
 	var svg = d3.select("#graph").append("svg")
 		.attr("width", width)
@@ -100,8 +98,8 @@ function tick() {
     arrowhead.attr("cx", function(d) {return ((d.target.x * .9) + (d.source.x * .1))}).attr("cy", function(d) {return ((d.target.y * .9) + (d.source.y * .1))})
 }
 
-function changeGravity() {
-    d3.select("#lefttext").html("Canvas gravity draws all nodes toward the center of the canvas, preventing them from flying out of view.");
+function changeThreshold() {
+    d3.select("#lefttext").html("Threshold changed.");
 }
 
 function highlightNodes() {
@@ -170,44 +168,41 @@ function getBetweenness() {
 	updateText("Betweenness");
 }
 
-function updateForce() {
-	force.stop();
-	
-	var newGravity = document.getElementById('gravitySlider').value;
-	document.getElementById('gravityInput').value = newGravity;
-	
-	force.gravity(newGravity);
-	force.start();
-}
-d3.json("data.json",function(graph){
-    newGraphObj = {nodes: [], links: []};	
-    d3.select("#networkViz").remove();
-    initializeGraph(graph);
-})
+function updateThreshold() {
+	var newThreshold = document.getElementById('thresholdSlider').value;
+	document.getElementById('thresholdInput').value = newThreshold;
 
-//function randomGraph(nodeNumber, linkChance) {
-//	newGraphObj = {nodes: [], links: []};
-//	var x=0;
-//	while (x < nodeNumber) {
-//		var randomLat = Math.random();
-//		var randomLong = Math.random();
-//		var newNodeObj = {label: "Node"+x, id: x, lat: randomLat, long: randomLong}
-//		newGraphObj.nodes.push(newNodeObj);
-//		var y=0;
-//		while (y < nodeNumber) {
-//			if (y != x && Math.random() < linkChance) {
-//				var randomEdgeWeight = Math.random();
-//				newLinkObj = {source: x, target: y, weight: randomEdgeWeight, cost: randomEdgeWeight}
-//				newGraphObj.links.push(newLinkObj);
-//			}
-//			y++;
-//		}
-//		x++;
-//	}
-	
-//	d3.select("#networkViz").remove();
-//	initializeGraph(newGraphObj);
-//}
+    getConnectedComponent(newThreshold);
+}
+// d3.json("data.json",function(graph){
+//     newGraphObj = {nodes: [], links: []};	
+//     d3.select("#networkViz").remove();
+//     initializeGraph(graph);
+// });
+
+function randomGraph(nodeNumber, linkChance) {
+	newGraphObj = {nodes: [], links: []};
+	var x=0;
+	while (x < nodeNumber) {
+		var randomLat = Math.random();
+		var randomLong = Math.random();
+		var newNodeObj = {label: "Node"+x, id: x, lat: randomLat, long: randomLong}
+		newGraphObj.nodes.push(newNodeObj);
+		var y=0;
+		while (y < nodeNumber) {
+			if (y != x && Math.random() < linkChance) {
+                var randomEdgeWeight = Math.floor(Math.random() * 10) + 1;
+				newLinkObj = {source: x, target: y, weight: randomEdgeWeight, cost: randomEdgeWeight}
+				newGraphObj.links.push(newLinkObj);
+			}
+			y++;
+		}
+		x++;
+	}	
+	d3.select("#networkViz").remove();
+	initializeGraph(newGraphObj);
+}
+
 
 
 function resize(byValue) {
@@ -407,13 +402,20 @@ function findPath(sourceID, targetID, centrality_flag) {
 }
 
 function selectPath() {
-	d3.selectAll("g.node").on("click" ,setSource).style("cursor", "pointer")
+    d3.selectAll("line.link").transition().duration(300).style("stroke","#999");
+    d3.selectAll("circle.node").style("fill", "#FA8806");
+    d3.selectAll("g.node").on("click" ,setSource).style("cursor", "pointer")
 	d3.select("#lefttext").html("Select a node to compute a path from");
 }
-function selectNode() {
-    d3.selectAll("g.node").on("click", function(d) { sourceNode = d.id; console.log(sourceNode); }).style("cursor", "pointer");
+function selectNodeSpanningTree() {
+    d3.selectAll("line.link").transition().duration(300).style("stroke","#999");
+    d3.selectAll("circle.node").style("fill", "#FA8806");
+    d3.selectAll("g.node").on("click", function(d) { sourceNode = d.id; getSpanningTree(); d3.selectAll("g.node").on("click", null).style("cursor","auto");}).style("cursor", "pointer");
     d3.select("#lefttext").html("Select a node to compute a minimum spanning tree");
-    getSpanningTree();
+}
+function computeNodeConnectedComponent() {
+    d3.select("#lefttext").html("You change change threshold with slider");
+    getConnectedComponent(0);
 }
 function setSource(d) {
 	sourceNode = d.id;
@@ -465,31 +467,40 @@ function calculateCentrality() {
 	sizeByStats("Closeness");   
 }
 
-function findMinEdge(V, E, road_to, edge_list, total_node_num, edge_min) {
+function findMinEdge(V, E, road_to, edge_list, component_nodes, component_node_num, callback) {
+    var connected_flag = false;
+    var edge_min = INF;
+    var edge;
     for (var i = 0; i < V.length; i++) {
-        for (var j = 0; j < total_node_num; j++) {
+        for (var j = 0; j < component_node_num; j++) {
             var start_node = V[i];
-            console.log("start node:", start_node);
-            if (road_to[start_node][j] == edge_min) {
-                var match1 = V.find(function(node_id) { return node_id == start_node});
-                var match2 = V.find(function(node_id) { return node_od == j});
-                if (match1 && !match2) {
-                    V.push(j);
-                    E.push(edge_list[start_node][j]);
-                    return {start: start_node, end: j};
+            var end_node = component_nodes[j];
+
+            if (start_node == end_node) {
+                if ((i == V.length - 1) && (j == component_node_num - 1)) {return callback(connected_flag, edge);}
+                continue;  
+            } 
+            if (road_to[start_node][end_node] != INF) connected_flag = true;
+
+            var match1 = V.find(function(node_id) { return node_id === start_node; });
+            var match2 = V.find(function(node_id) { return node_id === end_node; });
+            if (match1 !== undefined && match2 === undefined) { // start_node should exist in V and end_node should not
+                if (road_to[start_node][end_node] < edge_min) {
+                    edge_min = road_to[start_node][end_node];
+                    edge = {start_node: start_node, end_node: end_node};
+                    if ((i == V.length - 1) && (j == component_node_num - 1)) {return callback(connected_flag, edge);}
                 }
+                else if ((i == V.length - 1) && (j == component_node_num - 1)) {return callback(connected_flag, edge);}
             }
+            else if ((i == V.length - 1) && (j == component_node_num - 1)) {return callback(connected_flag, edge);}
         }
     }
-    return findMinEdge(V, E, road_to, edge_list, total_node_num, edge_min + 1);
 }
 
 function getSpanningTree() {
-    console.log("a");
-    
     var sourceID = sourceNode;
     var total_node_num = nodes.length;
-    
+
     // init road_to and edge_list
     var road_to = new Array(nodes.length);        // distance between two nodes
     var edge_list = new Array(links.length);      // edge id between two nodes
@@ -514,22 +525,176 @@ function getSpanningTree() {
         edge_list[source_id][target_id] = link.id;
         edge_list[target_id][source_id] = link.id;
     }
-    console.log(sourceID);
+
+    // a specific connected component's nodes
+    var component_nodes = getComponentOfNode(sourceID);
+    var component_node_num = component_nodes.length;
 
     var V = [];
     var E = [];
     V.push(sourceID);
-    findMinEdge(V, E, road_to, edge_list, total_node_num, 0);
-    console.log(V, E);
+    var flag = false;
+    while (true) {
+        if (V.length >= component_node_num) break;
+        if (flag) break;
 
+        var edge_min = INF;
+        for (var i = 0; i < V.length; i++) {
+            for (var j = 0; j < component_node_num; j++) {
+                var start_node = V[i];
+                var end_node = component_nodes[j];
+                if (road_to[start_node][end_node] < edge_min) edge_min = road_to[start_node][end_node];
+            }
+        }
+
+        findMinEdge(V, E, road_to, edge_list, component_nodes, component_node_num, function (connected_flag, edge) {
+            if (connected_flag === false)
+                flag = true;
+            else {
+                if (!edge) return;
+                V.push(edge.end_node);
+                E.push(edge_list[edge.start_node][edge.end_node]);
+            }
+        });
+    }
     sourceNode = "";
+    d3.selectAll("circle.node").transition().delay(function(d) {return component_nodes.indexOf("" + d.id) > -1 ? (component_nodes.indexOf("" + d.id) * 500) + 500 : 0}).duration(300).style("fill", function(d) {return component_nodes.indexOf(d.id) > -1 ? "brown" : "#FA8806"});
+    d3.selectAll("line.link").transition().delay(function(d) {return E.indexOf(d.id) > -1 ? (E.indexOf(d.id) * 500) + 500 : 0}).duration(300).style("stroke", function(d) {return E.indexOf(d.id) > -1 ? "brown" : "#999"});
 }
 
-function getConnectedComponent() {
-    selectNode();
-    d3.select("#lefttext").html("Select a node to compute a connected component");
-    var sourceID = sourceNode;
+function getComponentOfNode(start_node) {
+    var total_node_num = nodes.length;
 
+    var road_to = new Array(nodes.length);        // distance between two nodes
+    for (var i = 0; i < total_node_num; i++) {
+        road_to[i] = new Array(total_node_num);
+
+        for (var j = 0; j < total_node_num; j++)
+            road_to[i][j] = INF;
+        road_to[i][i] = 0;
+    }
+
+    for (var index in links) {
+        var link = links[index];
+        var source_id = link.source.id;
+        var target_id = link.target.id;
+        var cost = link.cost;
+
+        road_to[source_id][target_id] = cost;
+        road_to[target_id][source_id] = cost;
+    }
+
+    var components = {};
+    var component_count = 0;
+    var total_count = 0;
+
+    var index = 0;
+    while (true) {
+        if (index == nodes.length) break;
+        var connected_flag = false;
+        for (var i = 0; i < component_count; i++) {
+            if (components[i].find(function(id) {return id == index}) != undefined) {
+                connected_flag = true;
+                break;
+            }
+        }
+
+        if (!connected_flag) {
+            components[component_count] = getComponent(index, road_to, [index]);
+            component_count++;
+        }
+        index++;
+    }
+    
+    var i;
+    for (i = 0; i < component_count; i++) {
+        if (components[i].find(function(id) {return id == start_node}) !== undefined)
+            break;
+    }
+    
+    return components[i];
+}
+
+function getComponent(start_node, road_to, res) {
+    for (var i = 0; i < nodes.length; i++) {
+        if (road_to[start_node][i] != INF) {
+            if (res.find(function(id) {return id == i}) === undefined) {
+                res.push(i);
+                res = getComponent(i, road_to, res);
+            }
+        }
+    }
+
+    return res;
+}
+
+function getConnectedComponent(threshold) {
+    var sourceID = sourceNode;
+    var total_node_num = nodes.length;
+
+    var road_to = new Array(nodes.length);        // distance between two nodes
+    for (var i = 0; i < total_node_num; i++) {
+        road_to[i] = new Array(total_node_num);
+
+        for (var j = 0; j < total_node_num; j++)
+            road_to[i][j] = INF;
+        road_to[i][i] = 0;
+    }
+
+    var weak_links = [];
+    for (var index in links) {
+        var link = links[index];
+        var source_id = link.source.id;
+        var target_id = link.target.id;
+        var cost = link.cost;
+
+        // apply threshold
+        if (cost < threshold) {
+            cost = INF;
+            weak_links.push(link.id);
+        }
+        road_to[source_id][target_id] = cost;
+        road_to[target_id][source_id] = cost;
+    }
+
+    d3.selectAll("line.link").style("stroke", function(d) {
+        if (weak_links.find(function(id) {return id == d.id;}) !== undefined) return "white";
+    });
+
+    var components = {};
+    var component_count = 0;
+    var total_count = 0;
+
+    var index = 0;
+    while (true) {
+        if (index == nodes.length) break;
+        var connected_flag = false;
+        for (var i = 0; i < component_count; i++) {
+            if (components[i].find(function(id) {return id == index}) != undefined) {
+                connected_flag = true;
+                break;
+            }
+        }
+
+        if (!connected_flag) {
+            components[component_count] = getComponent(index, road_to, [index]);
+            component_count++;
+        }
+        index++;
+    }
+
+    var randomColor = [];
+    for (var i = 0; i < component_count; i++)
+        randomColor.push(Math.floor(Math.random()*16777215).toString(16));  // generate random color https://css-tricks.com/snippets/javascript/random-hex-color/
+
+    d3.selectAll("circle.node").transition().delay(function(d) {return nodes.indexOf("" + d.id) > -1 ? (nodes.indexOf("" + d.id) * 500) + 500 : 0}).duration(300).style("fill", function(d) {
+        var i;
+        for (i = 0; i < component_count; i++) {
+            if (components[i].find(function(id) {return id == d.id}) !== undefined)
+                break;
+        }
+        return randomColor[i];
+    });
 
     sourceNode = "";
 }
