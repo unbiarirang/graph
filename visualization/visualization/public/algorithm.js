@@ -474,17 +474,17 @@ function calculateCentrality() {
 	sizeByStats("Closeness");   
 }
 
-function findMinEdge(V, E, road_to, edge_list, total_node_num, callback) {
+function findMinEdge(V, E, road_to, edge_list, component_nodes, component_node_num, callback) {
     var connected_flag = false;
     var edge_min = INF;
     var edge;
     for (var i = 0; i < V.length; i++) {
-        for (var j = 0; j < total_node_num; j++) {
+        for (var j = 0; j < component_node_num; j++) {
             var start_node = V[i];
-            var end_node = nodes[j].id;
+            var end_node = component_nodes[j];
 
             if (start_node == end_node) {
-                if ((i == V.length - 1) && (j == total_node_num - 1)) {return callback(connected_flag, edge);}
+                if ((i == V.length - 1) && (j == component_node_num - 1)) {return callback(connected_flag, edge);}
                 continue;  
             } 
             if (road_to[start_node][end_node] != INF) connected_flag = true;
@@ -496,11 +496,11 @@ function findMinEdge(V, E, road_to, edge_list, total_node_num, callback) {
                     edge_min = road_to[start_node][end_node];
                     edge = {start_node: start_node, end_node: end_node};
                     console.log("edge: ", edge);
-                    if ((i == V.length - 1) && (j == total_node_num - 1)) {return callback(connected_flag, edge);}
+                    if ((i == V.length - 1) && (j == component_node_num - 1)) {return callback(connected_flag, edge);}
                 }
-                else if ((i == V.length - 1) && (j == total_node_num - 1)) {return callback(connected_flag, edge);}
+                else if ((i == V.length - 1) && (j == component_node_num - 1)) {return callback(connected_flag, edge);}
             }
-            else if ((i == V.length - 1) && (j == total_node_num - 1)) {return callback(connected_flag, edge);}
+            else if ((i == V.length - 1) && (j == component_node_num - 1)) {return callback(connected_flag, edge);}
         }
     }
 }
@@ -537,31 +537,36 @@ function getSpanningTree() {
         edge_list[target_id][source_id] = link.id;
     }
 
+    // a specific connected component's nodes
+    var component_nodes = getComponentOfNode(sourceID);
+    var component_node_num = component_nodes.length;
+
     var V = [];
     var E = [];
     V.push(sourceID);
     var flag = false;
     while (true) {
-        if (V.length >= total_node_num) break;
+        if (V.length >= component_node_num) break;
         if (flag) break;
         console.log("V.length: ", V.length);
 
         var edge_min = INF;
         for (var i = 0; i < V.length; i++) {
-            for (var j = 0; j < total_node_num; j++) {
+            for (var j = 0; j < component_node_num; j++) {
                 var start_node = V[i];
-                var end_node = nodes[j].id;
+                var end_node = component_nodes[j];
                 if (road_to[start_node][end_node] < edge_min) edge_min = road_to[start_node][end_node];
             }
         }
 
-        findMinEdge(V, E, road_to, edge_list, total_node_num, function (connected_flag, edge) {
+        findMinEdge(V, E, road_to, edge_list, component_nodes, component_node_num, function (connected_flag, edge) {
             console.log("connected_flag, edge: ", connected_flag, edge);
             if (connected_flag === false) {
                 console.log("이어져 있는 점이 없다. 지금은 이거 나오면 안됨");
                 flag = true;
             }
             else {
+                if (!edge) return;
                 V.push(edge.end_node);
                 E.push(edge_list[edge.start_node][edge.end_node]);
                 console.log("V: ", V);
@@ -570,7 +575,61 @@ function getSpanningTree() {
         });
     }
     sourceNode = "";
+    d3.selectAll("circle.node").transition().delay(function(d) {return component_nodes.indexOf("" + d.id) > -1 ? (component_nodes.indexOf("" + d.id) * 500) + 500 : 0}).duration(300).style("fill", function(d) {return component_nodes.indexOf(d.id) > -1 ? "brown" : "#FA8806"});
     d3.selectAll("line.link").transition().delay(function(d) {return E.indexOf(d.id) > -1 ? (E.indexOf(d.id) * 500) + 500 : 0}).duration(300).style("stroke", function(d) {return E.indexOf(d.id) > -1 ? "brown" : "#999"});
+}
+
+function getComponentOfNode(start_node) {
+    var total_node_num = nodes.length;
+
+    var road_to = new Array(nodes.length);        // distance between two nodes
+    for (var i = 0; i < total_node_num; i++) {
+        road_to[i] = new Array(total_node_num);
+
+        for (var j = 0; j < total_node_num; j++)
+            road_to[i][j] = INF;
+        road_to[i][i] = 0;
+    }
+
+    for (var index in links) {
+        var link = links[index];
+        var source_id = link.source.id;
+        var target_id = link.target.id;
+        var cost = link.cost;
+
+        road_to[source_id][target_id] = cost;
+        road_to[target_id][source_id] = cost;
+    }
+
+    var components = {};
+    var component_count = 0;
+    var total_count = 0;
+
+    var index = 0;
+    while (true) {
+        if (index == nodes.length) break;
+        var connected_flag = false;
+        for (var i = 0; i < component_count; i++) {
+            if (components[i].find(function(id) {return id == index}) != undefined) {
+                connected_flag = true;
+                break;
+            }
+        }
+
+        if (!connected_flag) {
+            components[component_count] = getComponent(index, road_to, [index]);
+            component_count++;
+        }
+        index++;
+    }
+    
+    var i;
+    for (i = 0; i < component_count; i++) {
+        if (components[i].find(function(id) {return id == start_node}) !== undefined)
+            break;
+    }
+    
+    return components[i];
 }
 
 function getComponent(start_node, road_to, res) {
@@ -633,14 +692,13 @@ function getConnectedComponent() {
 
     var randomColor = [];
     for (var i = 0; i < component_count; i++)
-        randomColor.push(Math.floor(Math.random()*16777215).toString(16));  // generate random color
+        randomColor.push(Math.floor(Math.random()*16777215).toString(16));  // generate random color https://css-tricks.com/snippets/javascript/random-hex-color/
 
     d3.selectAll("circle.node").transition().delay(function(d) {return nodes.indexOf("" + d.id) > -1 ? (nodes.indexOf("" + d.id) * 500) + 500 : 0}).duration(300).style("fill", function(d) {
         var i;
         for (i = 0; i < component_count; i++) {
-            if (components[i].find(function(id) {return id == d.id}) !== undefined) {
+            if (components[i].find(function(id) {return id == d.id}) !== undefined)
                 break;
-            }
         }
         return randomColor[i];
     });
