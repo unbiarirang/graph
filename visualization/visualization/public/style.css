@@ -60,3 +60,10 @@ rect {
 #codetext {
     font: 1em/1 "Courier New", Courier, monospace;
 }
+
+#button {
+    background-color: white; 
+    color: black; 
+    border: 1px solid #FA8806;
+    cursor: pointer;
+}

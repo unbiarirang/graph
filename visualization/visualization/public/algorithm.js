@@ -1,10 +1,10 @@
 var currentSizing = "nothing";
 var currentEdge = "fixed";
 var sourceNode = "";
-var width = 500,
+var width = 700,
     height = 600;
 var fill = d3.scale.category20();
-randomGraph(150, 0.005);
+randomGraph(200, 0.005);
 updateText("initialpage");
 
 // update right side text according to button press event
@@ -46,7 +46,7 @@ function initializeGraph(newGraph) {
 		.links(newLinks)
 		.linkDistance(60)
         .charge(-60)
-        .gravity(0.1)
+        .gravity(0.11)
 		.on("tick", tick);
 	var svg = d3.select("#graph").append("svg")
 		.attr("width", width)
@@ -78,7 +78,7 @@ function mousedown() {
   var point = d3.mouse(this),
       node = {id: nodes.length, label: "Node" + nodes.length, lat: .5, long: .25, weight: 1, x: point[0], y: point[1]},
       n = nodes.push(node);
-  // add links to any nearby nodes
+    // add links to any nearby nodes
 	nodes.forEach(function(target) {
 		var x = target.x - node.x,
 			y = target.y - node.y;
@@ -147,6 +147,8 @@ function restart() {
 	resize(currentSizing);
 }
 
+// code for using data we extracted
+
 // d3.json("data.json",function(graph){
 //     newGraphObj = {nodes: [], links: []};	
 //     d3.select("#networkViz").remove();
@@ -164,7 +166,7 @@ function randomGraph(nodeNumber, linkChance) {
 		var y=0;
 		while (y < nodeNumber) {
 			if (y != x && Math.random() < linkChance) {
-                var randomEdgeWeight = Math.floor(Math.random() * 10) + 1;
+                var randomEdgeWeight = Math.floor(Math.random() * 10) + 1;  // cost 1 ~ 10
 				newLinkObj = {source: x, target: y, weight: randomEdgeWeight, cost: randomEdgeWeight}
 				newGraphObj.links.push(newLinkObj);
 			}
@@ -543,7 +545,7 @@ function getSpanningTree() {
 
     sourceNode = "";
     d3.selectAll("circle.node").transition().delay(function(d) {return component_nodes.indexOf("" + d.id) > -1 ? (component_nodes.indexOf("" + d.id) * 500) + 500 : 0}).duration(300).style("fill", function(d) {return component_nodes.indexOf(d.id) > -1 ? "brown" : "#FA8806"});
-    d3.selectAll("line.link").transition().delay(function(d) {return E.indexOf(d.id) > -1 ? (E.indexOf(d.id) * 500) + 500 : 0}).duration(300).style("stroke", function(d) {return E.indexOf(d.id) > -1 ? "brown" : "#999"});
+    d3.selectAll("line.link").style("stroke", function(d) {return E.indexOf(d.id) > -1 ? "brown" : "#999"});
 }
 
 // get connected component of start_node 
