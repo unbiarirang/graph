@@ -87,12 +87,14 @@ void readdata()
 			  groupnum++;
 			 }
 		  }
+
 		  for(int i=0;i<idnum;i++)
 			cout<<group[i]<<endl;
-	/*	  ofstream outputStream("Links.json");
+		  ofstream outputStream("Links.json");
 		  	if(outputStream.is_open())
 			{
 				outputStream<<"\"Links\": [\n";
+			//	outputStream<<"source,target,weight"<<"\n";
 			}
 			for(int i=0;i<idnum;i++)
 			for(int j=0;j<idnum;j++)
@@ -101,30 +103,33 @@ void readdata()
 				{
 		  			if(outputStream.is_open())
 					{
-						outputStream<<"\"source\": \""<<i<<"\", \"target\": \""<<j<<"\",\"value\":"<<v_weight[i][j]<<"},\n";
+						outputStream<<"{\"source\": "<<i<<", \"target\": "<<j<<",\"weight\":"<<v_weight[i][j]<<",\"cost\":"<<v_weight[i][j]<<"},\n";
+						//outputStream<<i<<","<<j<<","<<v_weight[i][j]<<"\n";	
 						v_next[j][i]=0;
 					}
 				}
 			}
-			outputStream<<"]";*/
+		//	outputStream<<"]";
 
 		Node *p=saveid;
 		 ofstream out("movie_id.json");
 		 if (out.is_open())   
 			  {  
 				out<<"\"movies\":\n";
-		       }	
+				//  out<<"id,"<<"name"<<"\n";
+		      }	
 		 int i=0;
 		 while(1)
 		 {
 			if(p==NULL)
 				break;
-			/* if (out.is_open())   
+			 if (out.is_open())   
 			  {  
-				  out<<"{\"id\":"<<p->idnumber<<",\"title\":\""<<p->movie<<"\"}\n";
-		       }	*/
-				cout<<"{\"id\":"<<p->idnumber<<",\"title\":\""<<p->movie<<",group:"<<group[i]<<"}"<<endl;
-				i++;
+				  out<<"{\"label\":"<<p->idnumber<<",\"id\":\""<<p->movie<<"\"},\n";
+				//out<<p->idnumber<<","<<p->movie<<"\n";	 
+		      }	
+			/*	cout<<"{\"id\":"<<p->idnumber<<",\"title\":\""<<p->movie<<",group:"<<group[i]<<"}"<<endl;
+				i++;*/
 				p=p->nextmovie;
 		 }  //output json
 	/*	  for(int i=0;i<idnum;i++)
@@ -136,12 +141,4 @@ void readdata()
 			cout<<endl;
 		  }*/
 }
-void readdata2()
-{
-	ifstream inputStream;
-	char buffer[1000]={NULL};
-	char movie[100]={NULL};
-	char score[100]={NULL};
-	char genre[100]={NULL};
 
-}

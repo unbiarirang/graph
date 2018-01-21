@@ -52,6 +52,7 @@ rect {
     color:#707070;
     height: 0;
     overflow: visible;
+    line-height:1.5em;
 }
 #citations {
     margin-top: 20px;
