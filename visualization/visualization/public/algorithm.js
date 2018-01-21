@@ -6,7 +6,7 @@ var width = 500,
 var fill = d3.scale.category20();
 
 // set the initial state
-randomGraph(5, 0.225);
+randomGraph(15, 0.075);
 updateText("initialpage");
 
 function updateText(lessonType) {
@@ -407,12 +407,22 @@ function findPath(sourceID, targetID, centrality_flag) {
 }
 
 function selectPath() {
-	d3.selectAll("g.node").on("click" ,setSource).style("cursor", "pointer")
+    d3.selectAll("line.link").transition().duration(300).style("stroke","#999");
+    d3.selectAll("circle.node").style("fill", "#FA8806");
+    d3.selectAll("g.node").on("click" ,setSource).style("cursor", "pointer")
 	d3.select("#lefttext").html("Select a node to compute a path from");
 }
-function selectNode() {
-    d3.selectAll("g.node").on("click", function(d) { sourceNode = d.id; getSpanningTree(); }).style("cursor", "pointer");
+function selectNodeSpanningTree() {
+    d3.selectAll("line.link").transition().duration(300).style("stroke","#999");
+    d3.selectAll("circle.node").style("fill", "#FA8806");
+    d3.selectAll("g.node").on("click", function(d) { sourceNode = d.id; getSpanningTree(); d3.selectAll("g.node").on("click", null).style("cursor","auto");}).style("cursor", "pointer");
     d3.select("#lefttext").html("Select a node to compute a minimum spanning tree");
+}
+function selectNodeConnectedComponent() {
+    d3.selectAll("line.link").transition().duration(300).style("stroke","#999");
+    d3.selectAll("circle.node").style("fill", "#FA8806");
+    d3.selectAll("g.node").on("click", function(d) { sourceNode = d.id; getConnectedComponent(); d3.selectAll("g.node").on("click", null).style("cursor","auto");}).style("cursor", "pointer");
+    d3.select("#lefttext").html("Select a node to compute a connected component");
 }
 function setSource(d) {
 	sourceNode = d.id;
@@ -493,29 +503,6 @@ function findMinEdge(V, E, road_to, edge_list, total_node_num, callback) {
             else if ((i == V.length - 1) && (j == total_node_num - 1)) {return callback(connected_flag, edge);}
         }
     }
-
-    // for (var i = 0; i < V.length; i++) {
-    //     for (var j = 0; j < total_node_num; j++) {
-    //         var start_node = V[i];
-    //         var end_node = nodes[j].id;
-
-    //         if (start_node == end_node) continue;
-    //         if (road_to[start_node][end_node] != INF) connected_flag = true;
-    //         if (road_to[start_node][end_node] == edge_min) {
-    //             var match1 = V.find(function(node_id) { return node_id === start_node; });
-    //             var match2 = V.find(function(node_id) { return node_id === end_node; });
-    //             if (match1 !== undefined && match2 === undefined) { // start_node should exist in V and end_node should not
-    //                 console.log("match1, 2: ", match1, match2);
-    //                 console.log("start_node: ", start_node);
-    //                 console.log("end_node: ", end_node);
-    //                 return { start_node: start_node, end_node: end_node };
-    //             }
-    //         }
-
-    //         if ((i == V.length - 1) && (j == total_node_num - 1)) return connected_flag;
-    //     }
-    // }
-    console.log("여기로 빠져나가면 안되지");
 }
 
 function getSpanningTree() {
@@ -583,12 +570,80 @@ function getSpanningTree() {
         });
     }
     sourceNode = "";
+    d3.selectAll("line.link").transition().delay(function(d) {return E.indexOf(d.id) > -1 ? (E.indexOf(d.id) * 500) + 500 : 0}).duration(300).style("stroke", function(d) {return E.indexOf(d.id) > -1 ? "brown" : "#999"});
+}
+
+function getComponent(start_node, road_to, res) {
+    for (var i = 0; i < nodes.length; i++) {
+        if (road_to[start_node][i] != INF) {
+            if (res.find(function(id) {return id == i}) === undefined) {
+                res.push(i);
+                res = getComponent(i, road_to, res);
+            }
+        }
+    }
+
+    return res;
 }
 
 function getConnectedComponent() {
-    selectNode();
-    d3.select("#lefttext").html("Select a node to compute a connected component");
     var sourceID = sourceNode;
+    var total_node_num = nodes.length;
+
+    var road_to = new Array(nodes.length);        // distance between two nodes
+    for (var i = 0; i < total_node_num; i++) {
+        road_to[i] = new Array(total_node_num);
+
+        for (var j = 0; j < total_node_num; j++)
+            road_to[i][j] = INF;
+        road_to[i][i] = 0;
+    }
+
+    for (var index in links) {
+        var link = links[index];
+        var source_id = link.source.id;
+        var target_id = link.target.id;
+        var cost = link.cost;
+
+        road_to[source_id][target_id] = cost;
+        road_to[target_id][source_id] = cost;
+    }
+
+    var components = {};
+    var component_count = 0;
+    var total_count = 0;
+
+    var index = 0;
+    while (true) {
+        if (index == nodes.length) break;
+        var connected_flag = false;
+        for (var i = 0; i < component_count; i++) {
+            if (components[i].find(function(id) {return id == index}) != undefined) {
+                connected_flag = true;
+                break;
+            }
+        }
+
+        if (!connected_flag) {
+            components[component_count] = getComponent(index, road_to, [index]);
+            component_count++;
+        }
+        index++;
+    }
+
+    var randomColor = [];
+    for (var i = 0; i < component_count; i++)
+        randomColor.push(Math.floor(Math.random()*16777215).toString(16));  // generate random color
+
+    d3.selectAll("circle.node").transition().delay(function(d) {return nodes.indexOf("" + d.id) > -1 ? (nodes.indexOf("" + d.id) * 500) + 500 : 0}).duration(300).style("fill", function(d) {
+        var i;
+        for (i = 0; i < component_count; i++) {
+            if (components[i].find(function(id) {return id == d.id}) !== undefined) {
+                break;
+            }
+        }
+        return randomColor[i];
+    });
 
     sourceNode = "";
 }
