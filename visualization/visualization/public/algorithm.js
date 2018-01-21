@@ -5,8 +5,8 @@ var width = 500,
     height = 600;
 var fill = d3.scale.category20();
 
-// set the initial state
-randomGraph(50, 0.025);
+
+
 updateText("initialpage");
 
 function updateText(lessonType) {
@@ -174,11 +174,11 @@ function updateThreshold() {
 
     getConnectedComponent(newThreshold);
 }
-// d3.json("data.json",function(graph){
-//     newGraphObj = {nodes: [], links: []};	
-//     d3.select("#networkViz").remove();
-//     initializeGraph(graph);
-// });
+d3.json("data.json",function(graph){
+    newGraphObj = {nodes: [], links: []};	
+    d3.select("#networkViz").remove();
+    initializeGraph(graph);
+});
 
 function randomGraph(nodeNumber, linkChance) {
 	newGraphObj = {nodes: [], links: []};

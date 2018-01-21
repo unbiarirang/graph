@@ -132,13 +132,6 @@ void readdata()
 				i++;*/
 				p=p->nextmovie;
 		 }  //output json
-	/*	  for(int i=0;i<idnum;i++)
-		  {
-			  for(int j=0;j<idnum;j++)
-			  {
-				cout<<v_next[i][j]<<" ";
-			  }
-			cout<<endl;
-		  }*/
+
 }
 
