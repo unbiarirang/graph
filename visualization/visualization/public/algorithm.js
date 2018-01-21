@@ -6,7 +6,7 @@ var width = 500,
 var fill = d3.scale.category20();
 
 // set the initial state
-//randomGraph(50, 0.025);
+randomGraph(50, 0.025);
 updateText("initialpage");
 
 function updateText(lessonType) {
