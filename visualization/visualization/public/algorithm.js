@@ -9,6 +9,7 @@ var fill = d3.scale.category20();
 randomGraph(50, 0.025);
 updateText("initialpage");
 
+// update right side text according to button press event
 function updateText(lessonType) {
 	switch(lessonType) {        
 		case "initialpage":
@@ -29,10 +30,10 @@ function updateText(lessonType) {
 	}
 }
 
+// initialize graph
 function initializeGraph(newGraph) {
 	newNodes = [];
 	newLinks = [];
-	//We need a hash to fit the link structure of D3's force-directed layout
 	nodeHash = {};
 	for ( x = 0; x < newGraph.nodes.length; x++ ) {
 		newNodes.push(newGraph.nodes[x]);
@@ -102,30 +103,15 @@ function changeThreshold() {
     d3.select("#lefttext").html("Threshold changed.");
 }
 
-function highlightNodes() {
-	d3.selectAll("circle.node").transition().duration(300).style("stroke-width", 5);
-	d3.selectAll("circle.node").transition().delay(300).duration(300).style("stroke-width", 0);
-	if (document.getElementById('nodeCheckbox').checked == true) {
-		document.getElementById("repulsionSlider").disabled=true;
-		d3.select("#lefttext").html("Nodes exert a repulsion on other nodes based on their degree centrality.");
-	}
-	else {
-		document.getElementById("repulsionSlider").disabled=false;
-		d3.select("#lefttext").html("Nodes exert a fixed value of repulsion set with the slider.");
-	}
+function getBetweenness() {
+	updateText("Betweenness");
 }
 
-function highlightEdges() {
-	d3.selectAll("line.link").transition().duration(300).style("stroke", "black");
-	d3.selectAll("line.link").transition().delay(300).duration(300).style("stroke", "#999999")
-	if (document.getElementById('edgeCheckbox').checked == true) {
-		document.getElementById("attractionSlider").disabled=true;
-		d3.select("#lefttext").html("Nodes attract connected nodes based on the strength of the shared link.");
-	}
-	else {
-		document.getElementById("attractionSlider").disabled=false;
-		d3.select("#lefttext").html("Nodes attract connected nodes based on the fixed value set on the slider.");
-	}
+function updateThreshold() {
+	var newThreshold = document.getElementById('thresholdSlider').value;
+	document.getElementById('thresholdInput').value = newThreshold;
+
+    getConnectedComponent(newThreshold);
 }
 
 function restart() {
@@ -160,20 +146,9 @@ function restart() {
     
     arrowhead.exit().remove();
   	force.start();
-	//Apparently you have to delay the resizing to keep D3 from holding the elements that are supposed to be .removed()  
 	resize(currentSizing);
 }
 
-function getBetweenness() {
-	updateText("Betweenness");
-}
-
-function updateThreshold() {
-	var newThreshold = document.getElementById('thresholdSlider').value;
-	document.getElementById('thresholdInput').value = newThreshold;
-
-    getConnectedComponent(newThreshold);
-}
 // d3.json("data.json",function(graph){
 //     newGraphObj = {nodes: [], links: []};	
 //     d3.select("#networkViz").remove();
@@ -203,41 +178,40 @@ function randomGraph(nodeNumber, linkChance) {
 	initializeGraph(newGraphObj);
 }
 
-
-
 function resize(byValue) {
-  currentSizing = byValue;
-  var minSize = d3.min(nodes, function(d) {return parseFloat(d["weight"])});
-  var maxSize = d3.max(nodes, function(d) {return parseFloat(d["weight"])});
-  var minWeight = d3.min(links, function(d) {return parseFloat(d["cost"])});
-  var maxWeight = d3.max(links, function(d) {return parseFloat(d["cost"])});
-  var sizingRamp = d3.scale.linear().domain([minSize,maxSize]).range([1,10]).clamp(true);
-  var edgeRamp = d3.scale.linear().domain([maxWeight,minWeight]).range([.5,3]).clamp(true);
-  
-  switch(byValue)
-  {
-    case "nothing":
-      d3.selectAll("circle.node").attr("r", 5)
-      
-      d3.selectAll("image.node").attr("x", -2.5)
-      .attr("y", -2.5)
-      .attr("width", 5)
-      .attr("height", 5);
-    break;
-    case "degree":
-      d3.selectAll("circle.node").attr("r", function(d) {return sizingRamp(d["weight"])})
-      
-      d3.selectAll("image.node").attr("x", function(d) { return -((sizingRamp(d["weight"]))/2)})
-      .attr("y", function(d) { return -((sizingRamp(d["weight"]))/2)})
-      .attr("width", function(d) { return (sizingRamp(d["weight"]))})
-      .attr("height", function(d) { return (sizingRamp(d["weight"]))});
-    break;
-    }
+    currentSizing = byValue;
+    var minSize = d3.min(nodes, function(d) {return parseFloat(d["weight"])});
+    var maxSize = d3.max(nodes, function(d) {return parseFloat(d["weight"])});
+    var minWeight = d3.min(links, function(d) {return parseFloat(d["cost"])});
+    var maxWeight = d3.max(links, function(d) {return parseFloat(d["cost"])});
+    var sizingRamp = d3.scale.linear().domain([minSize,maxSize]).range([1,10]).clamp(true);
+    var edgeRamp = d3.scale.linear().domain([maxWeight,minWeight]).range([.5,3]).clamp(true);
+    
+    switch(byValue)
+    {
+        case "nothing":
+        d3.selectAll("circle.node").attr("r", 5)
+        
+        d3.selectAll("image.node").attr("x", -2.5)
+        .attr("y", -2.5)
+        .attr("width", 5)
+        .attr("height", 5);
+        break;
+        case "degree":
+        d3.selectAll("circle.node").attr("r", function(d) {return sizingRamp(d["weight"])})
+        
+        d3.selectAll("image.node").attr("x", function(d) { return -((sizingRamp(d["weight"]))/2)})
+        .attr("y", function(d) { return -((sizingRamp(d["weight"]))/2)})
+        .attr("width", function(d) { return (sizingRamp(d["weight"]))})
+        .attr("height", function(d) { return (sizingRamp(d["weight"]))});
+        break;
+        }
     
     d3.selectAll("line.link").style("stroke-width", function(d) {return edgeRamp(d["cost"])})
 }
 
-const INF = 2100000000;
+const INF = 2100000000; // max value
+// dijkstra algorithm. calculate the shortest path.
 function dijkstra(point, road_to, link_list, total_node_num) {
     // initialization
     var start_vertex = point.start;
@@ -245,7 +219,7 @@ function dijkstra(point, road_to, link_list, total_node_num) {
 	if (start_vertex == end_vertex) return { nodes: {}, paths: {}, total_cost: 0 };
 
     var d = [];             // the shortest distance to every node
-    var previous = [];
+    var previous = [];      // save previous node
 
     for (var i = 0; i < total_node_num; i++) {
         d.push(INF);
@@ -319,6 +293,7 @@ function dijkstra(point, road_to, link_list, total_node_num) {
 }
 
 // find the shortest path or centrality
+// if centrality_flag is true calculate closeness and betweenness
 function findPath(sourceID, targetID, centrality_flag) {
 	var total_node_num = nodes.length;
 
@@ -351,8 +326,7 @@ function findPath(sourceID, targetID, centrality_flag) {
 	if (!centrality_flag)
 		return dijkstra({start: sourceID, end: targetID}, road_to, edge_list, total_node_num);
 	
-
-	// get centrality (closeness and betweenness)
+    // get centrality (closeness and betweenness)
 	var graphStats = {};
 	for (var i in nodes) {
 		graphStats[nodes[i].id] = {};
@@ -401,27 +375,20 @@ function findPath(sourceID, targetID, centrality_flag) {
 	return graphStats;
 }
 
+// Features - Shortest Path button pressed
 function selectPath() {
     d3.selectAll("line.link").transition().duration(300).style("stroke","#999");
     d3.selectAll("circle.node").style("fill", "#FA8806");
     d3.selectAll("g.node").on("click" ,setSource).style("cursor", "pointer")
 	d3.select("#lefttext").html("Select a node to compute a path from");
 }
-function selectNodeSpanningTree() {
-    d3.selectAll("line.link").transition().duration(300).style("stroke","#999");
-    d3.selectAll("circle.node").style("fill", "#FA8806");
-    d3.selectAll("g.node").on("click", function(d) { sourceNode = d.id; getSpanningTree(); d3.selectAll("g.node").on("click", null).style("cursor","auto");}).style("cursor", "pointer");
-    d3.select("#lefttext").html("Select a node to compute a minimum spanning tree");
-}
-function computeNodeConnectedComponent() {
-    d3.select("#lefttext").html("You change change threshold with slider");
-    getConnectedComponent(0);
-}
+
 function setSource(d) {
 	sourceNode = d.id;
 	d3.selectAll("g.node").on("click",setTarget);
 	d3.select("#lefttext").html(d.id + "selected - select a node to compute the path to");
 }
+
 function setTarget(d) {
 	var computedPathArray = findPath(sourceNode, d.id);
 
@@ -441,32 +408,49 @@ function setTarget(d) {
 	sourceNode = "";
 }
 
-function sizeByStats(statname) {
+// change size of nodes by stats
+function sizeByStats(statName) {
 	var minStat = 9999;
 	var maxStat = 0;
     for (x in nodes) {
 		if (graphStats[nodes[x].id]["Total Connectivity"] != 0) {
-			minStat = Math.min(minStat, graphStats[nodes[x].id][statname]);
-			maxStat = Math.max(maxStat, graphStats[nodes[x].id][statname]);
+			minStat = Math.min(minStat, graphStats[nodes[x].id][statName]);
+			maxStat = Math.max(maxStat, graphStats[nodes[x].id][statName]);
 		}
     }
     
-    d3.select("#lefttext").html("Nodes are now sized by " + statname);
+    d3.select("#lefttext").html("Nodes are now sized by " + statName);
 	var sizeRamp = d3.scale.linear().domain([minStat,maxStat]).range([2,10]).clamp(true);
-	d3.selectAll("circle.node").transition().duration(300).attr("r", function(d,i) {return graphStats[nodes[i].id][statname] > 0 ? sizeRamp(graphStats[nodes[i].id][statname]) : 1});
+	d3.selectAll("circle.node").transition().duration(300).attr("r", function(d,i) {return graphStats[nodes[i].id][statName] > 0 ? sizeRamp(graphStats[nodes[i].id][statName]) : 1});
 	d3.selectAll("image.node").transition().duration(300)
-	.attr("height", function(d,i) {return graphStats[nodes[i].id]["Total Connectivity"] > 0 ? sizeRamp(graphStats[nodes[i].id][statname]) : 1})
-	.attr("width", function(d,i) {return graphStats[nodes[i].id]["Total Connectivity"] > 0 ? sizeRamp(graphStats[nodes[i].id][statname]) : 1})
-	.attr("x", function(d,i) {return graphStats[nodes[i].id]["Total Connectivity"] > 0 ? -(sizeRamp(graphStats[nodes[i].id][statname]) / 2) : -.5})
-	.attr("y", function(d,i) {return graphStats[nodes[i].id]["Total Connectivity"] > 0 ? -(sizeRamp(graphStats[nodes[i].id][statname]) / 2) : -.5});
+	.attr("height", function(d,i) {return graphStats[nodes[i].id]["Total Connectivity"] > 0 ? sizeRamp(graphStats[nodes[i].id][statName]) : 1})
+	.attr("width", function(d,i) {return graphStats[nodes[i].id]["Total Connectivity"] > 0 ? sizeRamp(graphStats[nodes[i].id][statName]) : 1})
+	.attr("x", function(d,i) {return graphStats[nodes[i].id]["Total Connectivity"] > 0 ? -(sizeRamp(graphStats[nodes[i].id][statName]) / 2) : -.5})
+	.attr("y", function(d,i) {return graphStats[nodes[i].id]["Total Connectivity"] > 0 ? -(sizeRamp(graphStats[nodes[i].id][statName]) / 2) : -.5});
 }
 
+// Features - Centrality button pressed
 function calculateCentrality() {
 	d3.select("#lefttext").html("Calculating paths...");
 	graphStats = findPath(0, 0, true);
 	sizeByStats("Closeness");   
 }
 
+// Features - Connected Component button pressed
+function computeNodeConnectedComponent() {
+    d3.select("#lefttext").html("You change change threshold with slider");
+    getConnectedComponent(0);
+}
+
+// Features - Minimum Spanning Tree button pressed
+function selectNodeSpanningTree() {
+    d3.selectAll("line.link").transition().duration(300).style("stroke","#999");
+    d3.selectAll("circle.node").style("fill", "#FA8806");
+    d3.selectAll("g.node").on("click", function(d) { sourceNode = d.id; getSpanningTree(); d3.selectAll("g.node").on("click", null).style("cursor","auto");}).style("cursor", "pointer");
+    d3.select("#lefttext").html("Select a node to compute a minimum spanning tree");
+}
+
+// find the minimun edge between nodes in V and nodes not in V (for Prim algorithm)
 function findMinEdge(V, E, road_to, edge_list, component_nodes, component_node_num, callback) {
     var connected_flag = false;
     var edge_min = INF;
@@ -477,14 +461,14 @@ function findMinEdge(V, E, road_to, edge_list, component_nodes, component_node_n
             var end_node = component_nodes[j];
 
             if (start_node == end_node) {
-                if ((i == V.length - 1) && (j == component_node_num - 1)) {return callback(connected_flag, edge);}
+                if ((i == V.length - 1) && (j == component_node_num - 1)) { return callback(connected_flag, edge); }
                 continue;  
             } 
             if (road_to[start_node][end_node] != INF) connected_flag = true;
 
             var match1 = V.find(function(node_id) { return node_id === start_node; });
             var match2 = V.find(function(node_id) { return node_id === end_node; });
-            if (match1 !== undefined && match2 === undefined) { // start_node should exist in V and end_node should not
+            if (match1 !== undefined && match2 === undefined) {     // start_node should exist in V and end_node should not
                 if (road_to[start_node][end_node] < edge_min) {
                     edge_min = road_to[start_node][end_node];
                     edge = {start_node: start_node, end_node: end_node};
@@ -530,6 +514,7 @@ function getSpanningTree() {
     var component_nodes = getComponentOfNode(sourceID);
     var component_node_num = component_nodes.length;
 
+    // Prim algorithm
     var V = [];
     var E = [];
     V.push(sourceID);
@@ -557,11 +542,13 @@ function getSpanningTree() {
             }
         });
     }
+
     sourceNode = "";
     d3.selectAll("circle.node").transition().delay(function(d) {return component_nodes.indexOf("" + d.id) > -1 ? (component_nodes.indexOf("" + d.id) * 500) + 500 : 0}).duration(300).style("fill", function(d) {return component_nodes.indexOf(d.id) > -1 ? "brown" : "#FA8806"});
     d3.selectAll("line.link").transition().delay(function(d) {return E.indexOf(d.id) > -1 ? (E.indexOf(d.id) * 500) + 500 : 0}).duration(300).style("stroke", function(d) {return E.indexOf(d.id) > -1 ? "brown" : "#999"});
 }
 
+// get connected component of start_node 
 function getComponentOfNode(start_node) {
     var total_node_num = nodes.length;
 
@@ -589,6 +576,7 @@ function getComponentOfNode(start_node) {
     var total_count = 0;
 
     var index = 0;
+    // find all connected components
     while (true) {
         if (index == nodes.length) break;
         var connected_flag = false;
@@ -615,6 +603,7 @@ function getComponentOfNode(start_node) {
     return components[i];
 }
 
+// use DFS to find a connected component
 function getComponent(start_node, road_to, res) {
     for (var i = 0; i < nodes.length; i++) {
         if (road_to[start_node][i] != INF) {
@@ -629,7 +618,6 @@ function getComponent(start_node, road_to, res) {
 }
 
 function getConnectedComponent(threshold) {
-    var sourceID = sourceNode;
     var total_node_num = nodes.length;
 
     var road_to = new Array(nodes.length);        // distance between two nodes
@@ -641,7 +629,7 @@ function getConnectedComponent(threshold) {
         road_to[i][i] = 0;
     }
 
-    var weak_links = [];
+    var weak_links = [];         // if cost < threshold
     for (var index in links) {
         var link = links[index];
         var source_id = link.source.id;
@@ -657,6 +645,7 @@ function getConnectedComponent(threshold) {
         road_to[target_id][source_id] = cost;
     }
 
+    // delete weak links
     d3.selectAll("line.link").style("stroke", function(d) {
         if (weak_links.find(function(id) {return id == d.id;}) !== undefined) return "white";
     });
@@ -666,6 +655,7 @@ function getConnectedComponent(threshold) {
     var total_count = 0;
 
     var index = 0;
+    // find all connected components
     while (true) {
         if (index == nodes.length) break;
         var connected_flag = false;
@@ -683,17 +673,18 @@ function getConnectedComponent(threshold) {
         index++;
     }
 
-    var randomColor = [];
+    var random_color = [];
     for (var i = 0; i < component_count; i++)
-        randomColor.push(Math.floor(Math.random()*16777215).toString(16));  // generate random color https://css-tricks.com/snippets/javascript/random-hex-color/
+        random_color.push(Math.floor(Math.random()*16777215).toString(16));  // generate random color https://css-tricks.com/snippets/javascript/random-hex-color/
 
+    // change node colors. nodes in same connected components have same color.
     d3.selectAll("circle.node").transition().delay(function(d) {return nodes.indexOf("" + d.id) > -1 ? (nodes.indexOf("" + d.id) * 500) + 500 : 0}).duration(300).style("fill", function(d) {
         var i;
         for (i = 0; i < component_count; i++) {
             if (components[i].find(function(id) {return id == d.id}) !== undefined)
                 break;
         }
-        return randomColor[i];
+        return random_color[i];
     });
 
     sourceNode = "";
