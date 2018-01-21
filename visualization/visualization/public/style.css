@@ -5,6 +5,9 @@ html, body {
     font: 1em/1 "Hoefler Text", "Georgia", Georgia, serif, sans-serif;
     padding: 10px;
 }
+#lefttext {
+  line-height:1.5em;
+}
 ol {
     list-style-type: none;
 }
